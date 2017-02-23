@@ -1,0 +1,9 @@
+bin/
+lib/
+data/
+CMakeCache.txt
+CMakeFiles/
+Testing/
+Makefile
+CTestTestfile.cmake
+cmake_install.cmake

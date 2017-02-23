@@ -14,12 +14,19 @@ int main(int argc, char** argv) {
   const std::string file_path(argv[1]);
 
   // Set range of data we want to read.
-  const int start_row = 10600;
-  const int end_row = 10605;
-  const int start_col = 120;
-  const int end_col = 125;
-  const int start_band = 370;
-  const int end_band = 390;
+  const int start_row = 3379;
+  const int end_row = 3380;
+  const int start_col = 7029;
+  const int end_col = 7030;
+  const int start_band = 0;
+  const int end_band = 1506;
+
+  //const int start_row = 10600;
+  //const int end_row = 10605;
+  //const int start_col = 120;
+  //const int end_col = 125;
+  //const int start_band = 370;
+  //const int end_band = 390;
 
   // Set data options.
   HSIDataOptions data_options(file_path);

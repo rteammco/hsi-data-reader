@@ -50,8 +50,8 @@ class HSIDataReader {
       : data_options_(data_options) {}
 
   // Read the data in the specified range. The range must be valid, within the
-  // specified HSIDataOptions data size.
-  void ReadData(
+  // specified HSIDataOptions data size. Returns true on success.
+  bool ReadData(
       const int start_row,
       const int end_row,
       const int start_col,

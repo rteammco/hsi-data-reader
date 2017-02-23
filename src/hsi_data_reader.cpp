@@ -31,6 +31,23 @@ bool HSIDataReader::ReadData(
     return false;
   }
 
+  // Check that the ranges are positive / valid.
+  const int num_rows_to_read = end_row - start_row;
+  const int num_cols_to_read = end_col - start_col;
+  const int num_bands_to_read = end_band - start_band;
+  if (num_rows_to_read <= 0) {
+    std::cerr << "Row range must be positive." << std::endl;
+    return false;
+  }
+  if (num_cols_to_read <= 0) {
+    std::cerr << "Column range must be positive." << std::endl;
+    return false;
+  }
+  if (num_bands_to_read <= 0) {
+    std::cerr << "Band range must be positive." << std::endl;
+    return false;
+  }
+
   // TODO: Implement here.
   std::ifstream data_file(data_options_.hsi_file_path);
   if (!data_file.is_open()) {
@@ -39,52 +56,52 @@ bool HSIDataReader::ReadData(
     return false;
   }
 
-  // TODO: Set size of vector. And this should be a private variable.
-  std::vector<float> hsi_data;
+  // Set the size of the data vector.
+  const long num_data_points =
+      num_rows_to_read * num_cols_to_read * num_bands_to_read;
+  hsi_data_.data.reserve(num_data_points);
 
-  // Determine the data size.
-  const int data_size = sizeof(float);  // TODO: size depends on options!
+  // Determine the data type size.
+  const int data_size = sizeof(float);  // TODO: Type depends on options!
 
   // Skip the header offset.
   long current_index = data_options_.header_offset;
-  data_file.seekg(current_index);
+  data_file.seekg(current_index * data_size);
 
   // BSQ. TODO: adapt to other interleave formats.
   const long num_pixels =
       data_options_.num_data_rows * data_options_.num_data_cols;
   for (int band = start_band; band < end_band; ++band) {
     const long band_index = band * num_pixels;
-    for (int row = start_row; row < end_row; ++row) {
-      for (int col = start_col; col < end_col; ++col) {
+    for (int col = start_col; col < end_col; ++col) {
+      for (int row = start_row; row < end_row; ++row) {
         const long pixel_index = row * data_options_.num_data_cols + col;
+        //const long pixel_index = col * data_options_.num_data_cols + row;
         const long next_index = band_index + pixel_index;
         // Skip to next position if necessary.
         if (next_index > (current_index + 1)) {
-          std::cout << "SEEK: " << current_index
-                    << " to " << next_index << std::endl;
           data_file.seekg(next_index * data_size);
         }
-        //char raw_data[data_size];
         float value;
-        data_file.read((char*)(&value), sizeof(value));
-        float reversed_value;
-        unsigned char* raw_value = (unsigned char*)(&value);
-        unsigned char* rev_value = (unsigned char*)(&reversed_value);
-        rev_value[0] = raw_value[3];
-        rev_value[1] = raw_value[2];
-        rev_value[2] = raw_value[1];
-        rev_value[3] = raw_value[0];
-        hsi_data.push_back(reversed_value);
-        //if (value > 0.00001 || reversed_value > 0.00001) {
-          std::cout << value << " or " << reversed_value << std::endl;
-        //}
+        data_file.read((char*)(&value), data_size);
+        // TODO: Reverse bytes based on endian mode.
+        //float reversed_value;
+        //unsigned char* raw_value = (unsigned char*)(&value);
+        //unsigned char* rev_value = (unsigned char*)(&reversed_value);
+        //rev_value[0] = raw_value[3];
+        //rev_value[1] = raw_value[2];
+        //rev_value[2] = raw_value[1];
+        //rev_value[3] = raw_value[0];
+        //hsi_data.push_back(reversed_value);
+        hsi_data_.data.push_back(value);
+        std::cout << value /*<< " or " << reversed_value*/ << std::endl;
         current_index = next_index;
       }
     }
   }
 
   // TODO: finish.
-  std::cout << hsi_data.size() << std::endl;
+  std::cout << hsi_data_.data.size() << std::endl;
 
   return true;
 }

@@ -2,6 +2,7 @@
 #define HSI_DATA_READER_H_
 
 #include <string>
+#include <vector>
 
 namespace hsi {
 
@@ -44,6 +45,33 @@ struct HSIDataOptions {
   int num_data_bands = 0;
 };
 
+// This struct stores and provides access to hyperspectral data. All data is
+// stored in a single vector, but can be indexed to access individual values.
+struct HSIData {
+  // The size of the data.
+  int num_rows = 0;
+  int num_cols = 0;
+  int num_bands = 0;
+
+  HSIDataInterleaveFormat interleave_format = HSI_INTERLEAVE_BSQ;
+
+  // Return the index value at the given index into the hyperspectral cube.
+  // This treats the image as a cube where rows and cols define the image Y
+  // (height) and X (width) axes, respectively, and the third is the spectral
+  // dimension.
+  //
+  // The ordering of the data depends on the interleave format used.
+  //
+  // TODO: Implement this.
+  float GetValue(const int row, const int col, const int band) {
+    const int index = 0;
+    return data[index];
+  }
+
+  // The raw data.
+  std::vector<float> data;
+};
+
 class HSIDataReader {
  public:
   HSIDataReader(const HSIDataOptions& data_options)
@@ -59,8 +87,14 @@ class HSIDataReader {
       const int start_band,
       const int end_band);
 
+  const HSIData& GetData() const {
+    return hsi_data_;
+  }
+
  private:
   const HSIDataOptions data_options_;
+
+  HSIData hsi_data_;
 };
 
 }

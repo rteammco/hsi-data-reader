@@ -15,9 +15,9 @@ int main(int argc, char** argv) {
 
   // Set range of data we want to read.
   const int start_row = 3379;
-  const int end_row = 3380;
+  const int end_row = 3381;
   const int start_col = 7029;
-  const int end_col = 7030;
+  const int end_col = 7031;
   const int start_band = 0;
   const int end_band = 1506;
 

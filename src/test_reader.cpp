@@ -7,8 +7,21 @@
 using namespace hsi;
 
 int main(int argc, char** argv) {
+  if (argc < 2) {
+    std::cerr << "Required argument: path to HSI file." << std::endl;
+    return -1;
+  }
+  const std::string file_path(argv[1]);
 
-  const std::string file_path = "path/to/file";
+  // Set range of data we want to read.
+  const int start_row = 0;
+  const int end_row = 100;
+  const int start_col = 0;
+  const int end_col = 100;
+  const int start_band = 0;
+  const int end_band = 100;
+
+  // Set data options.
   HSIDataOptions data_options(file_path);
   data_options.interleave_format = HSI_INTERLEAVE_BSQ;
   data_options.data_type = HSI_DATA_TYPE_FLOAT;
@@ -18,8 +31,9 @@ int main(int argc, char** argv) {
   data_options.num_data_cols = 11620;
   data_options.num_data_bands = 1506;
 
-  const HSIDataReader reader(data_options);
-  
+  HSIDataReader reader(data_options);
+  std::cout << "Reading data from file '" << file_path << "'." << std::endl;
+  reader.ReadData(start_row, end_row, start_col, end_col, start_band, end_band);
 
   return 0;
 }

@@ -49,6 +49,16 @@ class HSIDataReader {
   HSIDataReader(const HSIDataOptions& data_options)
       : data_options_(data_options) {}
 
+  // Read the data in the specified range. The range must be valid, within the
+  // specified HSIDataOptions data size.
+  void ReadData(
+      const int start_row,
+      const int end_row,
+      const int start_col,
+      const int end_col,
+      const int start_band,
+      const int end_band);
+
  private:
   const HSIDataOptions data_options_;
 };

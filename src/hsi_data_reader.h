@@ -1,3 +1,8 @@
+// Provides the HSIDataReader class which can read binary ENVI hyperspectral
+// image data. Use HSIDataOptions to set the data properties as needed, and use
+// HSIDataReader to read the desired range of the data. Loaded data is stored
+// in the HSIData struct.
+
 #ifndef HSI_DATA_READER_H_
 #define HSI_DATA_READER_H_
 
@@ -76,6 +81,8 @@ struct HSIData {
   std::vector<float> data;
 };
 
+// The HSIDataReader is responsible for loading the data and storing it in
+// memory.
 class HSIDataReader {
  public:
   HSIDataReader(const HSIDataOptions& data_options);
@@ -109,6 +116,6 @@ class HSIDataReader {
   HSIData hsi_data_;
 };
 
-}
+}  // namespace hsi
 
 #endif  // HSI_DATA_READER_H_

@@ -97,6 +97,11 @@ class HSIDataReader {
       const int start_band,
       const int end_band);
 
+  // Writes the data currently stored in hsi_data_ in the order that it was
+  // loaded in. Endian format is preserved from the original data. Returns true
+  // on success.
+  bool WriteData(const std::string& save_file_path) const;
+
   // Returns the HSIData struct containing any data loaded in from ReadData().
   const HSIData& GetData() const {
     return hsi_data_;

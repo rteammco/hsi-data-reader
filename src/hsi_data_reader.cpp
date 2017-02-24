@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <vector>
 
 namespace hsi {
@@ -82,7 +83,7 @@ bool HSIDataReader::ReadData(
   std::ifstream data_file(data_options_.hsi_file_path);
   if (!data_file.is_open()) {
     std::cerr << "File " << data_options_.hsi_file_path
-              << " could not be open." << std::endl;
+              << " could not be opened for reading." << std::endl;
     return false;
   }
 
@@ -105,8 +106,8 @@ bool HSIDataReader::ReadData(
       data_options_.num_data_rows * data_options_.num_data_cols;
   for (int band = start_band; band < end_band; ++band) {
     const long band_index = band * num_pixels;
-    for (int col = start_col; col < end_col; ++col) {
-      for (int row = start_row; row < end_row; ++row) {
+    for (int row = start_row; row < end_row; ++row) {
+      for (int col = start_col; col < end_col; ++col) {
         const long pixel_index = row * data_options_.num_data_cols + col;
         //const long pixel_index = col * data_options_.num_data_cols + row;
         const long next_index = band_index + pixel_index;
@@ -128,4 +129,26 @@ bool HSIDataReader::ReadData(
   return true;
 }
 
+bool HSIDataReader::WriteData(const std::string& save_file_path) const {
+  std::ofstream data_file(save_file_path);
+  if (!data_file.is_open()) {
+    std::cerr << "File " << save_file_path
+              << " could not be opened for writing." << std::endl;
+    return false;
+  }
+
+  // TODO: data type may not necessarily be "float".
+  const int data_size = sizeof(float);
+  for (const float value : hsi_data_.data) {
+    float write_value = value;
+    if (data_options_.big_endian != machine_big_endian_) {
+      write_value = ReverseBytes<float>(value);
+    }
+    data_file.write((char*)(&write_value), data_size);
+  }
+
+  data_file.close();
+  return true;
 }
+
+}  // namespace hsi

@@ -46,5 +46,12 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+  const HSIData& hsi_data = reader.GetData();
+  std::cout << "Successfully loaded " << hsi_data.NumDataPoints()
+            << " values." << std::endl;
+  for (const float value : hsi_data.data) {
+    std::cout << value << std::endl;
+  }
+
   return 0;
 }

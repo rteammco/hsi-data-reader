@@ -55,6 +55,10 @@ struct HSIData {
 
   HSIDataInterleaveFormat interleave_format = HSI_INTERLEAVE_BSQ;
 
+  int NumDataPoints() const {
+    return num_rows * num_cols * num_bands;
+  }
+
   // Return the index value at the given index into the hyperspectral cube.
   // This treats the image as a cube where rows and cols define the image Y
   // (height) and X (width) axes, respectively, and the third is the spectral
@@ -63,7 +67,7 @@ struct HSIData {
   // The ordering of the data depends on the interleave format used.
   //
   // TODO: Implement this.
-  float GetValue(const int row, const int col, const int band) {
+  float GetValue(const int row, const int col, const int band) const {
     const int index = 0;
     return data[index];
   }
@@ -74,8 +78,7 @@ struct HSIData {
 
 class HSIDataReader {
  public:
-  HSIDataReader(const HSIDataOptions& data_options)
-      : data_options_(data_options) {}
+  HSIDataReader(const HSIDataOptions& data_options);
 
   // Read the data in the specified range. The range must be valid, within the
   // specified HSIDataOptions data size. Returns true on success.
@@ -87,13 +90,22 @@ class HSIDataReader {
       const int start_band,
       const int end_band);
 
+  // Returns the HSIData struct containing any data loaded in from ReadData().
   const HSIData& GetData() const {
     return hsi_data_;
   }
 
  private:
+  // Contains options and information about the data file which is necessary
+  // for the ReadData() method to correctly read in the HSI data.
   const HSIDataOptions data_options_;
 
+  // This will be true if the machine is big endian. This is required for
+  // reading in the data correctly, which may not match the byte order of the
+  // machine it's being read on.
+  bool machine_big_endian_;
+
+  // The data struct will get filled in in the ReadData() method.
   HSIData hsi_data_;
 };
 

@@ -6,6 +6,36 @@
 
 namespace hsi {
 
+template <typename T>
+T ReverseBytes(const T value) {
+  T reversed_value;
+  const unsigned char* original_bytes = (const unsigned char*)(&value);
+  unsigned char* reversed_bytes  = (unsigned char*)(&reversed_value);
+  const int num_bytes = sizeof(T);
+  for (int i = 0; i < num_bytes; ++i) {
+    reversed_bytes[i] = original_bytes[num_bytes - 1 - i];
+  }
+  return reversed_value;
+}
+
+HSIDataReader::HSIDataReader(const HSIDataOptions& data_options) 
+    : data_options_(data_options) {
+
+  // Determine the machine endian. Union of memory means "unsigned int value"
+  // and "unsigned char bytes" share the same memory.
+  union UnsignedNumber {
+    unsigned int value;
+    unsigned char bytes[sizeof(unsigned int)];
+  };
+
+  // Set the value to unsigned 1, and check the byte array to see if it is in
+  // big endian or little endian order. The left-most byte will be empty (zero)
+  // if the machine is big endian.
+  UnsignedNumber number;
+  number.value = 1U;  // Unsigned int 1.
+  machine_big_endian_ = (number.bytes[0] != 1U);
+}
+
 bool HSIDataReader::ReadData(
     const int start_row,
     const int end_row,
@@ -32,23 +62,23 @@ bool HSIDataReader::ReadData(
   }
 
   // Check that the ranges are positive / valid.
-  const int num_rows_to_read = end_row - start_row;
-  const int num_cols_to_read = end_col - start_col;
-  const int num_bands_to_read = end_band - start_band;
-  if (num_rows_to_read <= 0) {
+  hsi_data_.num_rows = end_row - start_row;
+  hsi_data_.num_cols = end_col - start_col;
+  hsi_data_.num_bands = end_band - start_band;
+  if (hsi_data_.num_rows <= 0) {
     std::cerr << "Row range must be positive." << std::endl;
     return false;
   }
-  if (num_cols_to_read <= 0) {
+  if (hsi_data_.num_cols <= 0) {
     std::cerr << "Column range must be positive." << std::endl;
     return false;
   }
-  if (num_bands_to_read <= 0) {
+  if (hsi_data_.num_bands <= 0) {
     std::cerr << "Band range must be positive." << std::endl;
     return false;
   }
 
-  // TODO: Implement here.
+  // Try to open the file.
   std::ifstream data_file(data_options_.hsi_file_path);
   if (!data_file.is_open()) {
     std::cerr << "File " << data_options_.hsi_file_path
@@ -56,10 +86,12 @@ bool HSIDataReader::ReadData(
     return false;
   }
 
-  // Set the size of the data vector.
+  // Set the size of the data vector and the HSI data struct.
+  hsi_data_.data.clear();
   const long num_data_points =
-      num_rows_to_read * num_cols_to_read * num_bands_to_read;
+      hsi_data_.num_rows * hsi_data_.num_cols * hsi_data_.num_bands;
   hsi_data_.data.reserve(num_data_points);
+  hsi_data_.interleave_format = data_options_.interleave_format;
 
   // Determine the data type size.
   const int data_size = sizeof(float);  // TODO: Type depends on options!
@@ -84,24 +116,14 @@ bool HSIDataReader::ReadData(
         }
         float value;
         data_file.read((char*)(&value), data_size);
-        // TODO: Reverse bytes based on endian mode.
-        //float reversed_value;
-        //unsigned char* raw_value = (unsigned char*)(&value);
-        //unsigned char* rev_value = (unsigned char*)(&reversed_value);
-        //rev_value[0] = raw_value[3];
-        //rev_value[1] = raw_value[2];
-        //rev_value[2] = raw_value[1];
-        //rev_value[3] = raw_value[0];
-        //hsi_data.push_back(reversed_value);
+        if (data_options_.big_endian != machine_big_endian_) {
+          value = ReverseBytes<float>(value);
+        }
         hsi_data_.data.push_back(value);
-        std::cout << value /*<< " or " << reversed_value*/ << std::endl;
         current_index = next_index;
       }
     }
   }
-
-  // TODO: finish.
-  std::cout << hsi_data_.data.size() << std::endl;
 
   return true;
 }

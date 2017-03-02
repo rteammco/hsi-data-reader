@@ -31,6 +31,10 @@ struct HSIDataOptions {
   HSIDataOptions(const std::string& hsi_file_path)
       : hsi_file_path(hsi_file_path) {}
 
+  // Attempts to read the header information from an HSI header file. Returns
+  // true if the read was successful and the information was loaded.
+  bool ReadHeaderFromFile(const std::string& header_file_path);
+
   // Path to the binary hyperspectral data file.
   const std::string hsi_file_path;
 

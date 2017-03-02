@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace hsi {
@@ -17,6 +19,87 @@ T ReverseBytes(const T value) {
     reversed_bytes[i] = original_bytes[num_bytes - 1 - i];
   }
   return reversed_value;
+}
+
+bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
+  std::ifstream header_file(header_file_path);
+  if (!header_file.is_open()) {
+    std::cerr << "Header file " << header_file_path
+              << " could not be opened for reading." << std::endl;
+    return false;
+  }
+
+  // Read in all of the header data.
+  std::unordered_map<std::string, std::string> header_values;
+  std::string line;
+  while (!std::getline(header_file, line)) {
+    const int split_position = line.find('=', 0);
+    if (split_position <= 0) {
+      continue;
+    }
+    const std::string key = line.substr(0, split_position);
+    const std::string value = line.substr(split_position + 1);
+    std::cout << key << ": " << value << std::endl;
+    // TODO: Trim the strings!?
+    header_values[key] = value;
+  }
+  header_file.close();
+
+  // TODO: finish this up.
+
+  std::unordered_map<std::string, std::string>::const_iterator itr;
+
+  itr = header_values.find("interleave");
+  if (itr != header_values.end()) {
+    if (itr->second == "bsq") {
+      interleave_format = HSI_INTERLEAVE_BSQ;
+    } else if (itr->second == "bip") {
+      interleave_format = HSI_INTERLEAVE_BSQ;
+    } else if (itr->second == "bil") {
+      interleave_format = HSI_INTERLEAVE_BIL;
+    } else {
+      std::cerr << "Unsupported/unknown data interleave format: "
+                << itr->second << std::endl;
+      return false;
+    }
+  }
+
+  itr = header_values.find("data type");
+  if (itr != header_values.end()) {
+    // TODO: not currently supported beyond float.
+    data_type = HSI_DATA_TYPE_FLOAT;
+  }
+
+  itr = header_values.find("byte order");
+  if (itr != header_values.end()) {
+    if (itr->second == "1") {
+      big_endian = true;
+    } else {
+      big_endian = false;
+    }
+  }
+
+  itr = header_values.find("header offset");
+  if (itr != header_values.end()) {
+    header_offset = std::atoi(itr->second.c_str());
+  }
+
+  itr = header_values.find("samples");
+  if (itr != header_values.end()) {
+    num_data_rows = std::atoi(itr->second.c_str());
+  }
+
+  itr = header_values.find("lines");
+  if (itr != header_values.end()) {
+    num_data_cols = std::atoi(itr->second.c_str());
+  }
+
+  itr = header_values.find("bands");
+  if (itr != header_values.end()) {
+    num_data_bands = std::atoi(itr->second.c_str());
+  }
+
+  return true;
 }
 
 HSIDataReader::HSIDataReader(const HSIDataOptions& data_options) 

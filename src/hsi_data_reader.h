@@ -82,6 +82,17 @@ struct HSIData {
     return data[index];
   }
 
+  // Returns a vector containing the spectrum of the pixel at the given row
+  // and col of the image.
+  std::vector<float> GetSpectrum(const int row, const int col) const {
+    std::vector<float> spectrum;
+    spectrum.reserve(num_bands);
+    for (int band = 0; band < num_bands; ++band) {
+      spectrum.push_back(GetValue(row, col, band));
+    }
+    return spectrum;
+  }
+
   // The raw data.
   std::vector<float> data;
 };

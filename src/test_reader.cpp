@@ -92,5 +92,10 @@ int main(int argc, char** argv) {
     }
   }
 
+  const std::vector<float> band_0 = hsi_data.GetSpectrum(0, 0);
+  for (const float val : band_0) {
+    std::cout << val << std::endl;
+  }
+
   return 0;
 }

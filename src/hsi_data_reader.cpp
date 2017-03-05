@@ -1,5 +1,6 @@
 #include "hsi_data_reader.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -9,6 +10,29 @@
 
 namespace hsi {
 
+// Trims all whitespace from the sides of the string (including new lines).
+// Taken from:
+// http://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
+std::string TrimString(const std::string& string_to_trim) {
+  std::string trimmed_string = string_to_trim;
+  // Trim left.
+  trimmed_string.erase(trimmed_string.begin(), std::find_if(
+      trimmed_string.begin(),
+      trimmed_string.end(),
+      std::not1(std::ptr_fun<int, int>(std::isspace))));
+  // Trim right.
+  trimmed_string.erase(
+      std::find_if(
+          trimmed_string.rbegin(),
+          trimmed_string.rend(),
+          std::not1(std::ptr_fun<int, int>(std::isspace))).base(),
+      trimmed_string.end());
+  return trimmed_string;
+}
+
+// Reverses the bytes of the given value (e.g. float). This is used to convert
+// from the data's endian form into the machine's endian form when they are not
+// matched up.
 template <typename T>
 T ReverseBytes(const T value) {
   T reversed_value;
@@ -32,15 +56,13 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   // Read in all of the header data.
   std::unordered_map<std::string, std::string> header_values;
   std::string line;
-  while (!std::getline(header_file, line)) {
+  while (std::getline(header_file, line)) {
     const int split_position = line.find('=', 0);
     if (split_position <= 0) {
       continue;
     }
-    const std::string key = line.substr(0, split_position);
-    const std::string value = line.substr(split_position + 1);
-    std::cout << key << ": " << value << std::endl;
-    // TODO: Trim the strings!?
+    const std::string key = TrimString(line.substr(0, split_position));
+    const std::string value = TrimString(line.substr(split_position + 1));
     header_values[key] = value;
   }
   header_file.close();

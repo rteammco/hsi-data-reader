@@ -73,11 +73,12 @@ struct HSIData {
   // (height) and X (width) axes, respectively, and the third is the spectral
   // dimension.
   //
-  // The ordering of the data depends on the interleave format used.
-  //
-  // TODO: Implement this.
+  // TODO: The ordering of the data depends on the interleave format used.
   float GetValue(const int row, const int col, const int band) const {
-    const int index = 0;
+    const int num_pixels = num_rows * num_cols;
+    const int band_index = num_pixels * band;
+    const int pixel_index = col * num_rows + row;
+    const int index = band_index + pixel_index;
     return data[index];
   }
 

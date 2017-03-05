@@ -214,7 +214,6 @@ bool HSIDataReader::ReadData(
     for (int row = start_row; row < end_row; ++row) {
       for (int col = start_col; col < end_col; ++col) {
         const long pixel_index = row * data_options_.num_data_cols + col;
-        //const long pixel_index = col * data_options_.num_data_cols + row;
         const long next_index = band_index + pixel_index;
         // Skip to next position if necessary.
         if (next_index > (current_index + 1)) {

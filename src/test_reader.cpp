@@ -80,8 +80,15 @@ int main(int argc, char** argv) {
       std::cerr << "Mismatched value " << i << ": "
                 << hsi_data.data[i] << " vs. " << hsi_data_2.data[i]
                 << "." << std::endl;
-    } else {
-      std::cout << hsi_data.data[i] << std::endl;
+    }
+  }
+
+  // Print the original results.
+  for (int band = 0; band < hsi_data.num_bands; ++band) {
+    for (int row = 0; row < hsi_data.num_rows; ++row) {
+      for (int col = 0; col < hsi_data.num_cols; ++col) {
+        std::cout << hsi_data.GetValue(row, col, band) << std::endl;
+      }
     }
   }
 

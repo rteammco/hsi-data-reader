@@ -1,7 +1,8 @@
-#include "hsi_data_reader.h"
+#include "./hsi_data_reader.h"
 
 #include <algorithm>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -124,7 +125,7 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   return true;
 }
 
-HSIDataReader::HSIDataReader(const HSIDataOptions& data_options) 
+HSIDataReader::HSIDataReader(const HSIDataOptions& data_options)
     : data_options_(data_options) {
 
   // Determine the machine endian. Union of memory means "unsigned int value"
@@ -220,7 +221,7 @@ bool HSIDataReader::ReadData(
           data_file.seekg(next_index * data_size);
         }
         float value;
-        data_file.read((char*)(&value), data_size);
+        data_file.read(reinterpret_cast<char*>(&value), data_size);
         if (data_options_.big_endian != machine_big_endian_) {
           value = ReverseBytes<float>(value);
         }
@@ -248,7 +249,7 @@ bool HSIDataReader::WriteData(const std::string& save_file_path) const {
     if (data_options_.big_endian != machine_big_endian_) {
       write_value = ReverseBytes<float>(value);
     }
-    data_file.write((char*)(&write_value), data_size);
+    data_file.write(reinterpret_cast<char*>(&write_value), data_size);
   }
 
   data_file.close();

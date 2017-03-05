@@ -1,10 +1,13 @@
 #include <iostream>
 
 #include <string>
+#include <vector>
 
-#include "hsi_data_reader.h"
+#include "./hsi_data_reader.h"
 
-using namespace hsi;
+using hsi::HSIData;
+using hsi::HSIDataOptions;
+using hsi::HSIDataReader;
 
 int main(int argc, char** argv) {
   if (argc < 2) {
@@ -21,17 +24,10 @@ int main(int argc, char** argv) {
   const int start_band = 1000;
   const int end_band = 1506;
 
-  //const int start_row = 10600;
-  //const int end_row = 10605;
-  //const int start_col = 120;
-  //const int end_col = 125;
-  //const int start_band = 370;
-  //const int end_band = 390;
-
   // Set data options.
   HSIDataOptions data_options(file_path);
-  data_options.interleave_format = HSI_INTERLEAVE_BSQ;
-  data_options.data_type = HSI_DATA_TYPE_FLOAT;
+  data_options.interleave_format = hsi::HSI_INTERLEAVE_BSQ;
+  data_options.data_type = hsi::HSI_DATA_TYPE_FLOAT;
   data_options.big_endian = false;
   data_options.header_offset = 0;
   data_options.num_data_rows = 11620;
@@ -58,8 +54,8 @@ int main(int argc, char** argv) {
 
   // Read the written-out data and check if it's the same as before.
   HSIDataOptions data_options_2(temp_save_path);
-  data_options_2.interleave_format = HSI_INTERLEAVE_BSQ;
-  data_options_2.data_type = HSI_DATA_TYPE_FLOAT;
+  data_options_2.interleave_format = hsi::HSI_INTERLEAVE_BSQ;
+  data_options_2.data_type = hsi::HSI_DATA_TYPE_FLOAT;
   data_options_2.big_endian = false;
   data_options_2.header_offset = 0;
   data_options_2.num_data_rows = hsi_data.num_rows;
@@ -94,7 +90,7 @@ int main(int argc, char** argv) {
 
   const std::vector<float> band_0 = hsi_data.GetSpectrum(0, 0);
   for (const float val : band_0) {
-    std::cout << val << std::endl;
+//    std::cout << val << std::endl;
   }
 
   return 0;

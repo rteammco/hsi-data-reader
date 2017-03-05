@@ -3,8 +3,8 @@
 // HSIDataReader to read the desired range of the data. Loaded data is stored
 // in the HSIData struct.
 
-#ifndef HSI_DATA_READER_H_
-#define HSI_DATA_READER_H_
+#ifndef SRC_HSI_DATA_READER_H_
+#define SRC_HSI_DATA_READER_H_
 
 #include <string>
 #include <vector>
@@ -28,7 +28,7 @@ enum HSIDataType {
 // Options that specify the location and format of the data. Needed to
 // correctly parse the file.
 struct HSIDataOptions {
-  HSIDataOptions(const std::string& hsi_file_path)
+  explicit HSIDataOptions(const std::string& hsi_file_path)
       : hsi_file_path(hsi_file_path) {}
 
   // Attempts to read the header information from an HSI header file. Returns
@@ -101,7 +101,7 @@ struct HSIData {
 // memory.
 class HSIDataReader {
  public:
-  HSIDataReader(const HSIDataOptions& data_options);
+  explicit HSIDataReader(const HSIDataOptions& data_options);
 
   // Read the data in the specified range. The range must be valid, within the
   // specified HSIDataOptions data size. Returns true on success.
@@ -139,4 +139,4 @@ class HSIDataReader {
 
 }  // namespace hsi
 
-#endif  // HSI_DATA_READER_H_
+#endif  // SRC_HSI_DATA_READER_H_

@@ -57,7 +57,8 @@ struct HSIDataOptions {
 // This struct stores and provides access to hyperspectral data. All data is
 // stored in a single vector, but can be indexed to access individual values.
 struct HSIData {
-  // The size of the data.
+  // The size of the data. This only counts the size of the data read in the
+  // specified ranges (i.e. not necessarily the size of the entire data file).
   int num_rows = 0;
   int num_cols = 0;
   int num_bands = 0;
@@ -73,7 +74,13 @@ struct HSIData {
   // (height) and X (width) axes, respectively, and the third is the spectral
   // dimension.
   //
+  // All dimensions are zero-indexed. Indices are relative to the data in
+  // memory, and not absolute positions in the entire data file. For example,
+  // if data was read with start_row = 10, then row index 0 in this HSIData
+  // would correspond to row 10 in the original data file.
+  //
   // TODO: The ordering of the data depends on the interleave format used.
+  // TODO: Check for valid index ranges and report error if it's invalid.
   float GetValue(const int row, const int col, const int band) const {
     const int num_pixels = num_rows * num_cols;
     const int band_index = num_pixels * band;
@@ -105,6 +112,11 @@ class HSIDataReader {
 
   // Read the data in the specified range. The range must be valid, within the
   // specified HSIDataOptions data size. Returns true on success.
+  //
+  // Ranges are 0-indexed and end is non-inclusive. For example,
+  //   start_row = 2,
+  //   end_row = 7
+  // will return rows (2, 3, 4, 5, 6) where the first row in the data is row 0.
   bool ReadData(
       const int start_row,
       const int end_row,

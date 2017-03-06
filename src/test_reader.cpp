@@ -1,5 +1,7 @@
-#include <iostream>
+// Runs some basic tests on specified data and serves as an example for using
+// the code.
 
+#include <iostream>
 #include <string>
 #include <vector>
 

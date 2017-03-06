@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 2.8)
 
 project(HSIFileReader)
 
+find_package(OpenCV)
+IF(${OpenCV_FOUND})
+  include_directories(${OpenCV_INCLUDE_DIRS})
+  include_directories(${EIGEN_INCLUDE_DIR})
+ENDIF()
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # Default to Release mode.
@@ -31,3 +37,17 @@ add_executable(
   src/hsi_data_reader.cpp
   src/test_reader.cpp
 )
+
+# Add visualization test binary if OpenCV is available.
+IF(${OpenCV_FOUND})
+  MESSAGE("Found OpenCV: Building VisualizationTest as well.")
+  add_executable(
+    VisualizationTest
+    src/hsi_data_reader.cpp
+    src/test_visualizations.cpp
+  )
+  target_link_libraries(
+    VisualizationTest
+    ${OpenCV_LIBS}
+  )
+ENDIF()

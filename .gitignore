@@ -8,3 +8,4 @@ Makefile
 CTestTestfile.cmake
 cmake_install.cmake
 tmp_data
+TEST_COMMANDS

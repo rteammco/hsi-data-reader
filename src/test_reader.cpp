@@ -18,9 +18,9 @@ int main(int argc, char** argv) {
 
   // Set range of data we want to read.
   const int start_row = 3380;
-  const int end_row = 3384;
+  const int end_row = 3383;
   const int start_col = 7030;
-  const int end_col = 7034;
+  const int end_col = 7038;
   const int start_band = 1000;
   const int end_band = 1506;
 
@@ -80,11 +80,12 @@ int main(int argc, char** argv) {
   }
 
   // Print the original results.
-  for (int band = 0; band < hsi_data.num_bands; ++band) {
-    for (int row = 0; row < hsi_data.num_rows; ++row) {
-      for (int col = 0; col < hsi_data.num_cols; ++col) {
+  for (int row = 0; row < hsi_data.num_rows; ++row) {
+    for (int col = 0; col < hsi_data.num_cols; ++col) {
+      for (int band = 0; band < hsi_data.num_bands; ++band) {
         std::cout << hsi_data.GetValue(row, col, band) << std::endl;
       }
+      std::cout << "-----" << std::endl;
     }
   }
 

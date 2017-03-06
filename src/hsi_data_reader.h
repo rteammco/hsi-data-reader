@@ -84,7 +84,7 @@ struct HSIData {
   float GetValue(const int row, const int col, const int band) const {
     const int num_pixels = num_rows * num_cols;
     const int band_index = num_pixels * band;
-    const int pixel_index = col * num_rows + row;
+    const int pixel_index = row * num_cols + col;
     const int index = band_index + pixel_index;
     return data[index];
   }

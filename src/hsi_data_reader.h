@@ -11,16 +11,29 @@
 
 namespace hsi {
 
-// Interleave format: BSQ, BIP, or BIL.
-// TODO: comment on what each of these means.
+// Interleave format: BSQ, BIP, or BIL. The data files are a stream of bytes,
+// and the values in the data are stored in one of the interleave orderings.
+// TODO: implement support for BIP and BIL.
 enum HSIDataInterleaveFormat {
+  // BSQ (band sequential) format is organized in order of bands(rows(cols)).
+  // For example, for a file with 2 bands, 2 rows, and 2 columns, the order
+  // would be as follows:
+  //   b0,r0,c0
+  //   b0,r0,c1
+  //   b0,r1,c0
+  //   b0,r1,c1
+  //   b1,r0,c0
+  //   b1,r0,c1
+  //   b1,r1,c0
+  //   b1,r1,c1
   HSI_INTERLEAVE_BSQ,
-  HSI_INTERLEAVE_BIP,
-  HSI_INTERLEAVE_BIL
+
+//  HSI_INTERLEAVE_BIP,
+//  HSI_INTERLEAVE_BIL
 };
 
 // The precision/type of the data.
-// TODO: allow more than just float data type.
+// TODO: Add support for more than just float data type.
 enum HSIDataType {
   HSI_DATA_TYPE_FLOAT
 };

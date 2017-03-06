@@ -11,6 +11,8 @@
 
 namespace hsi {
 
+/*** Support Functions ***/
+
 // Trims all whitespace from the sides of the string (including new lines).
 // Taken from:
 // http://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
@@ -46,6 +48,8 @@ T ReverseBytes(const T value) {
   return reversed_value;
 }
 
+/*** HSIDataOptions ***/
+
 bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   std::ifstream header_file(header_file_path);
   if (!header_file.is_open()) {
@@ -76,10 +80,10 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   if (itr != header_values.end()) {
     if (itr->second == "bsq") {
       interleave_format = HSI_INTERLEAVE_BSQ;
-    } else if (itr->second == "bip") {
-      interleave_format = HSI_INTERLEAVE_BSQ;
-    } else if (itr->second == "bil") {
-      interleave_format = HSI_INTERLEAVE_BIL;
+//    } else if (itr->second == "bip") {
+//      interleave_format = HSI_INTERLEAVE_BSQ;
+//    } else if (itr->second == "bil") {
+//      interleave_format = HSI_INTERLEAVE_BIL;
     } else {
       std::cerr << "Unsupported/unknown data interleave format: "
                 << itr->second << std::endl;
@@ -124,6 +128,8 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
 
   return true;
 }
+
+/*** HSIDataReader ***/
 
 HSIDataReader::HSIDataReader(const HSIDataOptions& data_options)
     : data_options_(data_options) {

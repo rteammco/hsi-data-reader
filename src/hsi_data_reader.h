@@ -154,6 +154,10 @@ class HSIDataReader {
       const int start_band,
       const int end_band);
 
+  void SetData(const HSIData& hsi_data) {
+    hsi_data_ = hsi_data;
+  }
+
   // Writes the data currently stored in hsi_data_ in the order that it was
   // loaded in. Endian format is preserved from the original data. Returns true
   // on success.

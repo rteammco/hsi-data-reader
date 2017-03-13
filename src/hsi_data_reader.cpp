@@ -49,6 +49,7 @@ T ReverseBytes(const T value) {
 }
 
 // Does a data read assuming the data is in BSQ format.
+// BSQ is ordered as band > row > col.
 template <typename T>
 void ReadDataBSQ(
     const HSIDataOptions& data_options,
@@ -64,14 +65,57 @@ void ReadDataBSQ(
   long current_index = start_index;
   data_file->seekg(current_index * data_size);
 
-  const long num_pixels =
+  const long num_pixels_per_band =
       data_options.num_data_rows * data_options.num_data_cols;
   for (int band = data_range.start_band; band < data_range.end_band; ++band) {
-    const long band_index = band * num_pixels;
+    const long band_index = band * num_pixels_per_band;
     for (int row = data_range.start_row; row < data_range.end_row; ++row) {
       for (int col = data_range.start_col; col < data_range.end_col; ++col) {
         const long pixel_index = row * data_options.num_data_cols + col;
         const long next_index = band_index + pixel_index;
+        // Skip to next position if necessary.
+        if (next_index > (current_index + 1)) {
+          data_file->seekg(next_index * data_size);
+        }
+        T value;
+        data_file->read(reinterpret_cast<char*>(&value), data_size);
+        if (data_options.big_endian != machine_big_endian) {
+          value = ReverseBytes<T>(value);
+        }
+        hsi_data->data.push_back(value);
+        current_index = next_index;
+      }
+    }
+  }
+}
+
+// Does a data read assuming the data is in BIL format.
+// BIL is ordered as row > col > band.
+template <typename T>
+void ReadDataBIL(
+    const HSIDataOptions& data_options,
+    const bool machine_big_endian,
+    const HSIDataRange& data_range,
+    const long start_index,
+    std::ifstream* data_file,
+    HSIData* hsi_data) {
+
+  const int data_size = sizeof(T);
+
+  // Skip to current index.
+  long current_index = start_index;
+  data_file->seekg(current_index * data_size);
+
+  const long num_pixels_per_row =
+      data_options.num_data_bands * data_options.num_data_cols;
+  for (int row = data_range.start_row; row < data_range.end_row; ++row) {
+    const long row_index = row * num_pixels_per_row;
+    for (int col = data_range.start_col; col < data_range.end_col; ++col) {
+      for (int band = data_range.start_band;
+           band < data_range.end_band;
+           ++band) {
+        const long value_index = col * data_options.num_data_bands + band;
+        const long next_index = row_index + value_index;
         // Skip to next position if necessary.
         if (next_index > (current_index + 1)) {
           data_file->seekg(next_index * data_size);
@@ -247,6 +291,14 @@ bool HSIDataReader::ReadData(const HSIDataRange& data_range) {
 
   if (data_options_.interleave_format == HSI_INTERLEAVE_BSQ) {
     ReadDataBSQ<float>(
+        data_options_,
+        machine_big_endian_,
+        data_range,
+        data_options_.header_offset,
+        &data_file,
+        &hsi_data_);
+  } else if (data_options_.interleave_format == HSI_INTERLEAVE_BIL) {
+    ReadDataBIL<float>(
         data_options_,
         machine_big_endian_,
         data_range,

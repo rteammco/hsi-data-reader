@@ -48,6 +48,46 @@ T ReverseBytes(const T value) {
   return reversed_value;
 }
 
+// Does a data read assuming the data is in BSQ format.
+template <typename T>
+void ReadDataBSQ(
+    const HSIDataOptions& data_options,
+    const bool machine_big_endian,
+    const HSIDataRange& data_range,
+    const long start_index,
+    std::ifstream* data_file,
+    HSIData* hsi_data) {
+
+  const int data_size = sizeof(T);
+
+  // Skip to current index.
+  long current_index = start_index;
+  data_file->seekg(current_index * data_size);
+
+  const long num_pixels =
+      data_options.num_data_rows * data_options.num_data_cols;
+  for (int band = data_range.start_band; band < data_range.end_band; ++band) {
+    const long band_index = band * num_pixels;
+    for (int row = data_range.start_row; row < data_range.end_row; ++row) {
+      for (int col = data_range.start_col; col < data_range.end_col; ++col) {
+        const long pixel_index = row * data_options.num_data_cols + col;
+        const long next_index = band_index + pixel_index;
+        // Skip to next position if necessary.
+        if (next_index > (current_index + 1)) {
+          data_file->seekg(next_index * data_size);
+        }
+        T value;
+        data_file->read(reinterpret_cast<char*>(&value), data_size);
+        if (data_options.big_endian != machine_big_endian) {
+          value = ReverseBytes<T>(value);
+        }
+        hsi_data->data.push_back(value);
+        current_index = next_index;
+      }
+    }
+  }
+}
+
 /*** HSIDataOptions ***/
 
 bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
@@ -149,35 +189,31 @@ HSIDataReader::HSIDataReader(const HSIDataOptions& data_options)
   machine_big_endian_ = (number.bytes[0] != 1U);
 }
 
-bool HSIDataReader::ReadData(
-    const int start_row,
-    const int end_row,
-    const int start_col,
-    const int end_col,
-    const int start_band,
-    const int end_band) {
-
+bool HSIDataReader::ReadData(const HSIDataRange& data_range) {
   // Check that the given ranges are valid.
-  if (start_row < 0 || end_row > data_options_.num_data_rows) {
+  if (data_range.start_row < 0 ||
+      data_range.end_row > data_options_.num_data_rows) {
     std::cerr << "Invalid row range: must be between 0 and "
               << data_options_.num_data_rows << std::endl;
     return false;
   }
-  if (start_col < 0 || end_col > data_options_.num_data_cols) {
+  if (data_range.start_col < 0 ||
+      data_range.end_col > data_options_.num_data_cols) {
     std::cerr << "Invalid column range: must be between 0 and "
               << data_options_.num_data_cols << std::endl;
     return false;
   }
-  if (start_band < 0 || end_band > data_options_.num_data_bands) {
+  if (data_range.start_band < 0 ||
+      data_range.end_band > data_options_.num_data_bands) {
     std::cerr << "Invalid band range: must be between 0 and "
               << data_options_.num_data_bands << std::endl;
     return false;
   }
 
   // Check that the ranges are positive / valid.
-  hsi_data_.num_rows = end_row - start_row;
-  hsi_data_.num_cols = end_col - start_col;
-  hsi_data_.num_bands = end_band - start_band;
+  hsi_data_.num_rows = data_range.end_row - data_range.start_row;
+  hsi_data_.num_cols = data_range.end_col - data_range.start_col;
+  hsi_data_.num_bands = data_range.end_band - data_range.start_band;
   if (hsi_data_.num_rows <= 0) {
     std::cerr << "Row range must be positive." << std::endl;
     return false;
@@ -209,32 +245,14 @@ bool HSIDataReader::ReadData(
   // Determine the data type size.
   const int data_size = sizeof(float);  // TODO: Type depends on options!
 
-  // Skip the header offset.
-  long current_index = data_options_.header_offset;
-  data_file.seekg(current_index * data_size);
-
-  // BSQ. TODO: adapt to other interleave formats.
-  const long num_pixels =
-      data_options_.num_data_rows * data_options_.num_data_cols;
-  for (int band = start_band; band < end_band; ++band) {
-    const long band_index = band * num_pixels;
-    for (int row = start_row; row < end_row; ++row) {
-      for (int col = start_col; col < end_col; ++col) {
-        const long pixel_index = row * data_options_.num_data_cols + col;
-        const long next_index = band_index + pixel_index;
-        // Skip to next position if necessary.
-        if (next_index > (current_index + 1)) {
-          data_file.seekg(next_index * data_size);
-        }
-        float value;
-        data_file.read(reinterpret_cast<char*>(&value), data_size);
-        if (data_options_.big_endian != machine_big_endian_) {
-          value = ReverseBytes<float>(value);
-        }
-        hsi_data_.data.push_back(value);
-        current_index = next_index;
-      }
-    }
+  if (data_options_.interleave_format == HSI_INTERLEAVE_BSQ) {
+    ReadDataBSQ<float>(
+        data_options_,
+        machine_big_endian_,
+        data_range,
+        data_options_.header_offset,
+        &data_file,
+        &hsi_data_);
   }
 
   return true;

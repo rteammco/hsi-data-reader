@@ -68,6 +68,17 @@ struct HSIDataOptions {
   int num_data_bands = 0;
 };
 
+// Data range object is used for specifying the data range to read with the
+// HSIDataReader.
+struct HSIDataRange {
+  int start_band = 0;
+  int end_band = 0;
+  int start_row = 0;
+  int end_row = 0;
+  int start_col = 0;
+  int end_col = 0;
+};
+
 // This struct stores and provides access to hyperspectral data. All data is
 // stored in a single vector, but can be indexed to access individual values.
 struct HSIData {
@@ -146,13 +157,7 @@ class HSIDataReader {
   //   start_row = 2,
   //   end_row = 7
   // will return rows (2, 3, 4, 5, 6) where the first row in the data is row 0.
-  bool ReadData(
-      const int start_row,
-      const int end_row,
-      const int start_col,
-      const int end_col,
-      const int start_band,
-      const int end_band);
+  bool ReadData(const HSIDataRange& data_range);
 
   void SetData(const HSIData& hsi_data) {
     hsi_data_ = hsi_data;

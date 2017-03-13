@@ -19,12 +19,13 @@ int main(int argc, char** argv) {
   const std::string file_path(argv[1]);
 
   // Set range of data we want to read.
-  const int start_row = 3380;
-  const int end_row = 3383;
-  const int start_col = 7030;
-  const int end_col = 7038;
-  const int start_band = 1000;
-  const int end_band = 1506;
+  hsi::HSIDataRange data_range;
+  data_range.start_row = 3380;
+  data_range.end_row = 3383;
+  data_range.start_col = 7030;
+  data_range.end_col = 7038;
+  data_range.start_band = 1000;
+  data_range.end_band = 1506;
 
   // Set data options.
   HSIDataOptions data_options(file_path);
@@ -38,8 +39,7 @@ int main(int argc, char** argv) {
 
   HSIDataReader reader(data_options);
   std::cout << "Reading data from file '" << file_path << "'." << std::endl;
-  const bool success = reader.ReadData(
-      start_row, end_row, start_col, end_col, start_band, end_band);
+  const bool success = reader.ReadData(data_range);
   if (!success) {
     return -1;
   }
@@ -64,8 +64,14 @@ int main(int argc, char** argv) {
   data_options_2.num_data_cols = hsi_data.num_cols;
   data_options_2.num_data_bands = hsi_data.num_bands;
   HSIDataReader reader_2(data_options_2);
-  reader_2.ReadData(
-      0, hsi_data.num_rows, 0, hsi_data.num_cols, 0, hsi_data.num_bands);
+  hsi::HSIDataRange data_range_2;
+  data_range_2.start_row = 0;
+  data_range_2.end_row = hsi_data.num_rows;
+  data_range_2.start_col = 0;
+  data_range_2.end_col = hsi_data.num_cols;
+  data_range_2.start_band = 0;
+  data_range_2.end_band = hsi_data.num_bands;
+  reader_2.ReadData(data_range_2);
   const HSIData& hsi_data_2 = reader_2.GetData();
   std::cout << "Successfully re-loaded " << hsi_data.NumDataPoints()
             << " saved values." << std::endl;

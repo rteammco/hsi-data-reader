@@ -40,14 +40,14 @@ add_executable(
 
 # Add visualization test binary if OpenCV is available.
 IF(${OpenCV_FOUND})
-  MESSAGE("Found OpenCV: Building VisualizationTest as well.")
+  MESSAGE("Found OpenCV: Building Visualize binary as well.")
   add_executable(
-    VisualizationTest
+    Visualize
     src/hsi_data_reader.cpp
-    src/test_visualizations.cpp
+    src/visualize.cpp
   )
   target_link_libraries(
-    VisualizationTest
+    Visualize
     ${OpenCV_LIBS}
   )
 ENDIF()

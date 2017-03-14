@@ -33,6 +33,34 @@ std::string TrimString(const std::string& string_to_trim) {
   return trimmed_string;
 }
 
+// Returns a map
+std::unordered_map<std::string, std::string> GetConfigFileValues(
+    const std::string& config_file_path) {
+
+  std::unordered_map<std::string, std::string> config_values;
+
+  std::ifstream config_file(config_file_path);
+  if (!config_file.is_open()) {
+    std::cerr << "Configuration file " << config_file_path
+              << " could not be opened for reading." << std::endl;
+    return config_values;
+  }
+
+  std::string line;
+  while (std::getline(config_file, line)) {
+    const int split_position = line.find('=', 0);
+    if (split_position <= 0) {
+      continue;
+    }
+    const std::string key = TrimString(line.substr(0, split_position));
+    const std::string value = TrimString(line.substr(split_position + 1));
+    config_values[key] = value;
+  }
+  config_file.close();
+
+  return config_values;
+}
+
 // Reverses the bytes of the given value (e.g. float). This is used to convert
 // from the data's endian form into the machine's endian form when they are not
 // matched up.
@@ -135,39 +163,28 @@ void ReadDataBIL(
 /*** HSIDataOptions ***/
 
 bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
-  std::ifstream header_file(header_file_path);
-  if (!header_file.is_open()) {
-    std::cerr << "Header file " << header_file_path
-              << " could not be opened for reading." << std::endl;
+  std::unordered_map<std::string, std::string> header_values =
+      GetConfigFileValues(header_file_path);
+  if (header_values.empty()) {
+    std::cerr << "No header values available." << std::endl;
     return false;
   }
-
-  // Read in all of the header data.
-  std::unordered_map<std::string, std::string> header_values;
-  std::string line;
-  while (std::getline(header_file, line)) {
-    const int split_position = line.find('=', 0);
-    if (split_position <= 0) {
-      continue;
-    }
-    const std::string key = TrimString(line.substr(0, split_position));
-    const std::string value = TrimString(line.substr(split_position + 1));
-    header_values[key] = value;
-  }
-  header_file.close();
-
-  // TODO: finish this up.
-
   std::unordered_map<std::string, std::string>::const_iterator itr;
+
+  itr = header_values.find("data");
+  if (itr != header_values.end()) {
+    hsi_file_path = itr->second;
+  }
 
   itr = header_values.find("interleave");
   if (itr != header_values.end()) {
     if (itr->second == "bsq") {
       interleave_format = HSI_INTERLEAVE_BSQ;
-//    } else if (itr->second == "bip") {
-//      interleave_format = HSI_INTERLEAVE_BSQ;
-//    } else if (itr->second == "bil") {
-//      interleave_format = HSI_INTERLEAVE_BIL;
+      // TODO:
+      // } else if (itr->second == "bip") {
+      //   interleave_format = HSI_INTERLEAVE_BSQ;
+      // } else if (itr->second == "bil") {
+      //   interleave_format = HSI_INTERLEAVE_BIL;
     } else {
       std::cerr << "Unsupported/unknown data interleave format: "
                 << itr->second << std::endl;
@@ -178,16 +195,18 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   itr = header_values.find("data type");
   if (itr != header_values.end()) {
     // TODO: not currently supported beyond float.
-    data_type = HSI_DATA_TYPE_FLOAT;
+    if (itr->second == "4" || itr->second == "float") {
+      data_type = HSI_DATA_TYPE_FLOAT;
+    } else {
+      std::cerr << "Unsupported/unknown data type: "
+                << itr->second << std::endl;
+      return false;
+    }
   }
 
   itr = header_values.find("byte order");
   if (itr != header_values.end()) {
-    if (itr->second == "1") {
-      big_endian = true;
-    } else {
-      big_endian = false;
-    }
+    big_endian = (itr->second == "1");
   }
 
   itr = header_values.find("header offset");
@@ -208,6 +227,48 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   itr = header_values.find("bands");
   if (itr != header_values.end()) {
     num_data_bands = std::atoi(itr->second.c_str());
+  }
+
+  return true;
+}
+
+bool HSIDataRange::ReadRangeFromFile(const std::string& range_config_file) {
+  std::unordered_map<std::string, std::string> range_values =
+      GetConfigFileValues(range_config_file);
+  if (range_values.empty()) {
+    std::cerr << "No range values available." << std::endl;
+    return false;
+  }
+  std::unordered_map<std::string, std::string>::const_iterator itr;
+
+  itr = range_values.find("start row");
+  if (itr != range_values.end()) {
+    start_row = std::atoi(itr->second.c_str());
+  }
+
+  itr = range_values.find("end row");
+  if (itr != range_values.end()) {
+    end_row = std::atoi(itr->second.c_str());
+  }
+
+  itr = range_values.find("start col");
+  if (itr != range_values.end()) {
+    start_col = std::atoi(itr->second.c_str());
+  }
+
+  itr = range_values.find("end col");
+  if (itr != range_values.end()) {
+    end_col = std::atoi(itr->second.c_str());
+  }
+
+  itr = range_values.find("start band");
+  if (itr != range_values.end()) {
+    start_band = std::atoi(itr->second.c_str());
+  }
+
+  itr = range_values.find("end band");
+  if (itr != range_values.end()) {
+    end_band = std::atoi(itr->second.c_str());
   }
 
   return true;

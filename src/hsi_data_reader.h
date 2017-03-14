@@ -44,6 +44,8 @@ enum HSIDataType {
 // Options that specify the location and format of the data. Needed to
 // correctly parse the file.
 struct HSIDataOptions {
+  HSIDataOptions() {}
+
   explicit HSIDataOptions(const std::string& hsi_file_path)
       : hsi_file_path(hsi_file_path) {}
 
@@ -52,7 +54,7 @@ struct HSIDataOptions {
   bool ReadHeaderFromFile(const std::string& header_file_path);
 
   // Path to the binary hyperspectral data file.
-  const std::string hsi_file_path;
+  std::string hsi_file_path;
 
   // The format and type of the data.
   HSIDataInterleaveFormat interleave_format = HSI_INTERLEAVE_BSQ;
@@ -73,6 +75,9 @@ struct HSIDataOptions {
 // Data range object is used for specifying the data range to read with the
 // HSIDataReader.
 struct HSIDataRange {
+  // Attempts to read the data range information from config file. Returns true
+  // if the read was successful and the information was loaded.
+  bool ReadRangeFromFile(const std::string& range_config_file);
   int start_band = 0;
   int end_band = 0;
   int start_row = 0;

@@ -33,7 +33,8 @@ std::string TrimString(const std::string& string_to_trim) {
   return trimmed_string;
 }
 
-// Returns a map
+// Returns a map of the configuration key/value pairs stored in the given file.
+// Assumes one key/value pair per line, delimited by a '=' character.
 std::unordered_map<std::string, std::string> GetConfigFileValues(
     const std::string& config_file_path) {
 
@@ -245,6 +246,8 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   return true;
 }
 
+/*** HSIDataRange ***/
+
 bool HSIDataRange::ReadRangeFromFile(const std::string& range_config_file) {
   std::unordered_map<std::string, std::string> range_values =
       GetConfigFileValues(range_config_file);
@@ -285,6 +288,40 @@ bool HSIDataRange::ReadRangeFromFile(const std::string& range_config_file) {
   }
 
   return true;
+}
+
+/*** HSIData ***/
+
+float HSIData::GetValue(const int row, const int col, const int band) const {
+  if (row < 0 || row >= num_rows) {
+    std::cerr << "Row index out of range: " << row
+              << " must be between 0 and " << (num_rows - 1) << std::endl;
+    return 0.0;
+  }
+  if (col < 0 || col >= num_cols) {
+    std::cerr << "Column index out of range: " << col
+              << " must be between 0 and " << (num_cols - 1) << std::endl;
+    return 0.0;
+  }
+  if (band < 0 || band >= num_bands) {
+    std::cerr << "Band index out of range: " << band
+              << " must be between 0 and " << (num_bands - 1) << std::endl;
+    return 0.0;
+  }
+  const int num_pixels = num_rows * num_cols;
+  const int band_index = num_pixels * band;
+  const int pixel_index = row * num_cols + col;
+  const int index = band_index + pixel_index;
+  return data[index];
+}
+
+std::vector<float> HSIData::GetSpectrum(const int row, const int col) const {
+  std::vector<float> spectrum;
+  spectrum.reserve(num_bands);
+  for (int band = 0; band < num_bands; ++band) {
+    spectrum.push_back(GetValue(row, col, band));
+  }
+  return spectrum;
 }
 
 /*** HSIDataReader ***/

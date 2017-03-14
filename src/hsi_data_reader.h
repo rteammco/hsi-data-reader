@@ -113,39 +113,11 @@ struct HSIData {
   //
   // TODO: The ordering of the data depends on the interleave format used.
   // TODO: Check for valid index ranges and report error if it's invalid.
-  float GetValue(const int row, const int col, const int band) const {
-    if (row < 0 || row >= num_rows) {
-      std::cerr << "Row index out of range: " << row
-                << " must be between 0 and " << (num_rows - 1) << std::endl;
-      return 0.0;
-    }
-    if (col < 0 || col >= num_cols) {
-      std::cerr << "Column index out of range: " << col
-                << " must be between 0 and " << (num_cols - 1) << std::endl;
-      return 0.0;
-    }
-    if (band < 0 || band >= num_bands) {
-      std::cerr << "Band index out of range: " << band
-                << " must be between 0 and " << (num_bands - 1) << std::endl;
-      return 0.0;
-    }
-    const int num_pixels = num_rows * num_cols;
-    const int band_index = num_pixels * band;
-    const int pixel_index = row * num_cols + col;
-    const int index = band_index + pixel_index;
-    return data[index];
-  }
+  float GetValue(const int row, const int col, const int band) const;
 
   // Returns a vector containing the spectrum of the pixel at the given row
   // and col of the image.
-  std::vector<float> GetSpectrum(const int row, const int col) const {
-    std::vector<float> spectrum;
-    spectrum.reserve(num_bands);
-    for (int band = 0; band < num_bands; ++band) {
-      spectrum.push_back(GetValue(row, col, band));
-    }
-    return spectrum;
-  }
+  std::vector<float> GetSpectrum(const int row, const int col) const;
 
   // The raw data.
   std::vector<float> data;

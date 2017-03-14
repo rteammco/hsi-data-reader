@@ -8,11 +8,18 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "./hsi_data_reader.h"
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
+
+void SliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
+  std::vector<cv::Mat>* hsi_image_bands =
+      reinterpret_cast<std::vector<cv::Mat>*>(hsi_image_bands_ptr);
+  cv::imshow("HSI Image Visualization", hsi_image_bands->at(slider_value));
+}
 
 int main(int argc, char** argv) {
   if (argc < 2) {
@@ -36,18 +43,38 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  // Visualize the images.
+  // Create OpenCV images from the data.
   const hsi::HSIData& hsi_data = reader.GetData();
+  const cv::Size band_image_size(hsi_data.num_cols, hsi_data.num_rows);
+  std::vector<cv::Mat> hsi_image_bands;
   for (int band = 0; band < hsi_data.num_bands; ++band) {
-    cv::Mat m(cv::Size(hsi_data.num_cols, hsi_data.num_rows), CV_32FC1);
+    // TODO: this assumes the data is a float value.
+    cv::Mat band_image(band_image_size, CV_32FC1);
     for (int row = 0; row < hsi_data.num_rows; ++row) {
       for (int col = 0; col < hsi_data.num_cols; ++col) {
-        m.at<float>(row, col) = hsi_data.GetValue(row, col, band);
+        band_image.at<float>(row, col) = hsi_data.GetValue(row, col, band);
       }
     }
-    cv::imshow("Band Image", m);
-    cv::waitKey(0);
+    hsi_image_bands.push_back(band_image);
   }
+  if (hsi_image_bands.size() == 0) {
+    std::cerr << "No bands to visualize. Quitting." << std::endl;
+    return 0;
+  }
+
+  // Visualize the images so that the user can view them per-channel.
+  cv::namedWindow("HSI Image Visualization");
+  int slider_value;
+  cv::createTrackbar(
+      "Band Selector",
+      "HSI Image Visualization",
+      &slider_value,
+      hsi_image_bands.size() - 1,
+      SliderMovedCallback,
+      reinterpret_cast<void*>(&hsi_image_bands));
+  cv::imshow("HSI Image Visualization", hsi_image_bands[0]);
+  std::cout << "Visualizing data. Press any key to close window." << std::endl;
+  cv::waitKey(0);
 
   return 0;
 }

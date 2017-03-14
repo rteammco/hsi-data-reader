@@ -1,0 +1,25 @@
+# This is a config file. Lines starting with "#" will be skipped. Key/value
+# pairs are lines in the form of "key = value". Other lines will be skipped.
+# This key/value format reflects the ENVI header format, with additional
+# information added for the data range and original file path.
+
+# The data file path.
+data = /path/to/data/file
+
+# HSI data info. Alternatively, use "header = /path/to/header/file"
+# header = ../data/example_header.txt
+interleave      = bsq
+data type       = float
+byte order      = 0
+header offset   = 0
+samples         = 660
+lines           = 790
+bands           = 1506
+
+# Define the range of data to read in.
+start row       = 0
+end row         = 660
+start col       = 0
+end col         = 790
+start band      = 380
+end band        = 400

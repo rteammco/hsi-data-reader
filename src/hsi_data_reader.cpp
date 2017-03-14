@@ -48,7 +48,12 @@ std::unordered_map<std::string, std::string> GetConfigFileValues(
 
   std::string line;
   while (std::getline(config_file, line)) {
-    const int split_position = line.find('=', 0);
+    // Skip comment lines.
+    if (line.find('#') == 0) {
+      continue;
+    }
+    // Find the '=' delimiter.
+    const int split_position = line.find('=');
     if (split_position <= 0) {
       continue;
     }
@@ -174,6 +179,14 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   itr = header_values.find("data");
   if (itr != header_values.end()) {
     hsi_file_path = itr->second;
+  }
+
+  // If a header file path is specified (in a config file), set the data
+  // parameters from that header instead.
+  itr = header_values.find("header");
+  if (itr != header_values.end()) {
+    std::cout << "Reading header info from " << itr->second << std::endl;
+    return ReadHeaderFromFile(itr->second);
   }
 
   itr = header_values.find("interleave");

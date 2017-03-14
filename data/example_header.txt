@@ -1,0 +1,7 @@
+interleave      = bsq
+data type       = float
+byte order      = 0
+header offset   = 0
+samples         = 660
+lines           = 790
+bands           = 1506

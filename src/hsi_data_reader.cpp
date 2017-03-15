@@ -42,8 +42,8 @@ std::unordered_map<std::string, std::string> GetConfigFileValues(
 
   std::ifstream config_file(config_file_path);
   if (!config_file.is_open()) {
-    std::cerr << "Configuration file " << config_file_path
-              << " could not be opened for reading." << std::endl;
+    std::cerr << "Configuration file '" << config_file_path
+              << "' could not be opened for reading." << std::endl;
     return config_values;
   }
 
@@ -82,9 +82,22 @@ T ReverseBytes(const T value) {
   return reversed_value;
 }
 
+// Returns the size of the data value based on the given HSIDataType.
+int GetDataSize(const HSIDataType& data_type) {
+  // TODO: Add support for more types.
+  switch (data_type) {
+    case HSI_DATA_TYPE_INT16:
+      return sizeof(int16_t);
+    case HSI_DATA_TYPE_DOUBLE:
+      return sizeof(double);
+    case HSI_DATA_TYPE_FLOAT:
+    default:
+      return sizeof(float);
+  }
+}
+
 // Does a data read assuming the data is in BSQ format.
 // BSQ is ordered as band > row > col.
-template <typename T>
 void ReadDataBSQ(
     const HSIDataOptions& data_options,
     const bool machine_big_endian,
@@ -93,7 +106,7 @@ void ReadDataBSQ(
     std::ifstream* data_file,
     HSIData* hsi_data) {
 
-  const int data_size = sizeof(T);
+  const int data_size = GetDataSize(hsi_data->data_type);
 
   // Skip to current index.
   long current_index = start_index;
@@ -111,11 +124,11 @@ void ReadDataBSQ(
         if (next_index > (current_index + 1)) {
           data_file->seekg(next_index * data_size);
         }
-        T value;
-        data_file->read(reinterpret_cast<char*>(&value), data_size);
-        if (data_options.big_endian != machine_big_endian) {
-          value = ReverseBytes<T>(value);
-        }
+        HSIDataValue value;
+        data_file->read(value.bytes, data_size);
+        //if (data_options.big_endian != machine_big_endian) {
+        //  value.value_as_float = ReverseBytes<float>(value.value_as_float);
+        //}
         hsi_data->data.push_back(value);
         current_index = next_index;
       }
@@ -125,7 +138,6 @@ void ReadDataBSQ(
 
 // Does a data read assuming the data is in BIL format.
 // BIL is ordered as row > col > band.
-template <typename T>
 void ReadDataBIL(
     const HSIDataOptions& data_options,
     const bool machine_big_endian,
@@ -134,7 +146,7 @@ void ReadDataBIL(
     std::ifstream* data_file,
     HSIData* hsi_data) {
 
-  const int data_size = sizeof(T);
+  const int data_size = GetDataSize(hsi_data->data_type);
 
   // Skip to current index.
   long current_index = start_index;
@@ -154,11 +166,11 @@ void ReadDataBIL(
         if (next_index > (current_index + 1)) {
           data_file->seekg(next_index * data_size);
         }
-        T value;
-        data_file->read(reinterpret_cast<char*>(&value), data_size);
-        if (data_options.big_endian != machine_big_endian) {
-          value = ReverseBytes<T>(value);
-        }
+        HSIDataValue value;
+        data_file->read(value.bytes, data_size);
+        //if (data_options.big_endian != machine_big_endian) {
+        //  value = ReverseBytes<T>(value);
+        //}
         hsi_data->data.push_back(value);
         current_index = next_index;
       }
@@ -194,11 +206,12 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   if (itr != header_values.end()) {
     if (itr->second == "bsq") {
       interleave_format = HSI_INTERLEAVE_BSQ;
-      // TODO:
+      std::cout << "Option set: interleave BSQ." << std::endl;
       // } else if (itr->second == "bip") {
-      //   interleave_format = HSI_INTERLEAVE_BSQ;
-      // } else if (itr->second == "bil") {
-      //   interleave_format = HSI_INTERLEAVE_BIL;
+      //   interleave_format = HSI_INTERLEAVE_BIP;
+    } else if (itr->second == "bil") {
+      interleave_format = HSI_INTERLEAVE_BIL;
+      std::cout << "Option set: interleave BIL." << std::endl;
     } else {
       std::cerr << "Unsupported/unknown data interleave format: "
                 << itr->second << std::endl;
@@ -209,8 +222,15 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   itr = header_values.find("data type");
   if (itr != header_values.end()) {
     // TODO: not currently supported beyond float.
-    if (itr->second == "4" || itr->second == "float") {
+    if (itr->second == "2" || itr->second == "int16") {
+      data_type = HSI_DATA_TYPE_INT16;
+      std::cout << "Option set: data type int16." << std::endl;
+    } else if (itr->second == "4" || itr->second == "float") {
       data_type = HSI_DATA_TYPE_FLOAT;
+      std::cout << "Option set: data type float." << std::endl;
+    } else if (itr->second == "5" || itr->second == "double") {
+      data_type = HSI_DATA_TYPE_DOUBLE;
+      std::cout << "Option set: data type double." << std::endl;
     } else {
       std::cerr << "Unsupported/unknown data type: "
                 << itr->second << std::endl;
@@ -221,26 +241,32 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   itr = header_values.find("byte order");
   if (itr != header_values.end()) {
     big_endian = (itr->second == "1");
+    std::cout << "Option set: big endian = "
+              << (big_endian ? "true" : "false") << "." << std::endl;
   }
 
   itr = header_values.find("header offset");
   if (itr != header_values.end()) {
     header_offset = std::atoi(itr->second.c_str());
+    std::cout << "Header offset = " << header_offset << "." << std::endl;
   }
 
   itr = header_values.find("samples");
   if (itr != header_values.end()) {
     num_data_rows = std::atoi(itr->second.c_str());
+    std::cout << "Number of rows = " << num_data_rows << "." << std::endl;
   }
 
   itr = header_values.find("lines");
   if (itr != header_values.end()) {
     num_data_cols = std::atoi(itr->second.c_str());
+    std::cout << "Number of columns = " << num_data_cols << "." << std::endl;
   }
 
   itr = header_values.find("bands");
   if (itr != header_values.end()) {
     num_data_bands = std::atoi(itr->second.c_str());
+    std::cout << "Number of bands = " << num_data_bands << "." << std::endl;
   }
 
   return true;
@@ -292,21 +318,23 @@ bool HSIDataRange::ReadRangeFromFile(const std::string& range_config_file) {
 
 /*** HSIData ***/
 
-float HSIData::GetValue(const int row, const int col, const int band) const {
+HSIDataValue HSIData::GetValue(
+    const int row, const int col, const int band) const {
+
   if (row < 0 || row >= num_rows) {
     std::cerr << "Row index out of range: " << row
               << " must be between 0 and " << (num_rows - 1) << std::endl;
-    return 0.0;
+    return HSIDataValue();
   }
   if (col < 0 || col >= num_cols) {
     std::cerr << "Column index out of range: " << col
               << " must be between 0 and " << (num_cols - 1) << std::endl;
-    return 0.0;
+    return HSIDataValue();
   }
   if (band < 0 || band >= num_bands) {
     std::cerr << "Band index out of range: " << band
               << " must be between 0 and " << (num_bands - 1) << std::endl;
-    return 0.0;
+    return HSIDataValue();
   }
   const int num_pixels = num_rows * num_cols;
   const int band_index = num_pixels * band;
@@ -315,8 +343,10 @@ float HSIData::GetValue(const int row, const int col, const int band) const {
   return data[index];
 }
 
-std::vector<float> HSIData::GetSpectrum(const int row, const int col) const {
-  std::vector<float> spectrum;
+std::vector<HSIDataValue> HSIData::GetSpectrum(
+    const int row, const int col) const {
+
+  std::vector<HSIDataValue> spectrum;
   spectrum.reserve(num_bands);
   for (int band = 0; band < num_bands; ++band) {
     spectrum.push_back(GetValue(row, col, band));
@@ -396,12 +426,13 @@ bool HSIDataReader::ReadData(const HSIDataRange& data_range) {
       hsi_data_.num_rows * hsi_data_.num_cols * hsi_data_.num_bands;
   hsi_data_.data.reserve(num_data_points);
   hsi_data_.interleave_format = data_options_.interleave_format;
+  hsi_data_.data_type = data_options_.data_type;
 
   // Determine the data type size.
   const int data_size = sizeof(float);  // TODO: Type depends on options!
 
   if (data_options_.interleave_format == HSI_INTERLEAVE_BSQ) {
-    ReadDataBSQ<float>(
+    ReadDataBSQ(
         data_options_,
         machine_big_endian_,
         data_range,
@@ -409,7 +440,7 @@ bool HSIDataReader::ReadData(const HSIDataRange& data_range) {
         &data_file,
         &hsi_data_);
   } else if (data_options_.interleave_format == HSI_INTERLEAVE_BIL) {
-    ReadDataBIL<float>(
+    ReadDataBIL(
         data_options_,
         machine_big_endian_,
         data_range,
@@ -430,11 +461,11 @@ bool HSIDataReader::WriteData(const std::string& save_file_path) const {
   }
 
   // TODO: data type may not necessarily be "float".
-  const int data_size = sizeof(float);
-  for (const float value : hsi_data_.data) {
-    float write_value = value;
+  const int data_size = GetDataSize(hsi_data_.data_type);
+  for (const HSIDataValue value : hsi_data_.data) {
+    float write_value = value.value_as_float;
     if (data_options_.big_endian != machine_big_endian_) {
-      write_value = ReverseBytes<float>(value);
+      write_value = ReverseBytes<float>(write_value);
     }
     data_file.write(reinterpret_cast<char*>(&write_value), data_size);
   }

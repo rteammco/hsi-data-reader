@@ -47,12 +47,35 @@ int main(int argc, char** argv) {
   const hsi::HSIData& hsi_data = reader.GetData();
   const cv::Size band_image_size(hsi_data.num_cols, hsi_data.num_rows);
   std::vector<cv::Mat> hsi_image_bands;
+  int matrix_type;
+  switch (hsi_data.data_type) {
+    // TODO: Add support for more types.
+    case hsi::HSI_DATA_TYPE_INT16:
+      matrix_type = CV_16SC1;
+      break;
+    case hsi::HSI_DATA_TYPE_DOUBLE:
+      matrix_type = CV_64FC1;
+      break;
+    case hsi::HSI_DATA_TYPE_FLOAT:
+    default:
+      matrix_type = CV_32FC1;
+      break;
+  }
   for (int band = 0; band < hsi_data.num_bands; ++band) {
-    // TODO: this assumes the data is a float value.
-    cv::Mat band_image(band_image_size, CV_32FC1);
+    cv::Mat band_image(band_image_size, matrix_type);
     for (int row = 0; row < hsi_data.num_rows; ++row) {
       for (int col = 0; col < hsi_data.num_cols; ++col) {
-        band_image.at<float>(row, col) = hsi_data.GetValue(row, col, band);
+        switch (hsi_data.data_type) {
+        case hsi::HSI_DATA_TYPE_DOUBLE:
+          band_image.at<double>(row, col) =
+              hsi_data.GetValue(row, col, band).value_as_double;
+          break;
+        case hsi::HSI_DATA_TYPE_FLOAT:
+        default:
+          band_image.at<float>(row, col) =
+              hsi_data.GetValue(row, col, band).value_as_float;
+          break;
+        }
       }
     }
     hsi_image_bands.push_back(band_image);

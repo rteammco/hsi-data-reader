@@ -36,9 +36,17 @@ enum HSIDataInterleaveFormat {
 };
 
 // The precision/type of the data.
-// TODO: Add support for more than just float data type.
 enum HSIDataType {
-  HSI_DATA_TYPE_FLOAT
+  HSI_DATA_TYPE_BYTE = 1,
+  HSI_DATA_TYPE_INT16 = 2,
+  HSI_DATA_TYPE_INT32 = 3,
+  HSI_DATA_TYPE_FLOAT = 4,
+  HSI_DATA_TYPE_DOUBLE = 5,
+  // TODO: Complex 2x32 (6) and 2x64 (9) are also possible HSI data types.
+  HSI_DATA_TYPE_UNSIGNED_INT16 = 12,
+  HSI_DATA_TYPE_UNSIGNED_INT32 = 13,
+  HSI_DATA_TYPE_UNSIGNED_INT64 = 14,
+  HSI_DATA_TYPE_UNSIGNED_LONG = 15
 };
 
 // Options that specify the location and format of the data. Needed to
@@ -86,6 +94,17 @@ struct HSIDataRange {
   int end_col = 0;
 };
 
+// This memory union occupies multiple bytes, but allows interpreting the data
+// as an arbitrary type.
+union HSIDataValue {
+  HSIDataValue() : value_as_uint64(0) {}
+
+  float value_as_float;
+  double value_as_double;
+  unsigned long value_as_uint64;
+  char bytes[8];
+};
+
 // This struct stores and provides access to hyperspectral data. All data is
 // stored in a single vector, but can be indexed to access individual values.
 struct HSIData {
@@ -96,6 +115,7 @@ struct HSIData {
   int num_bands = 0;
 
   HSIDataInterleaveFormat interleave_format = HSI_INTERLEAVE_BSQ;
+  HSIDataType data_type = HSI_DATA_TYPE_FLOAT;
 
   int NumDataPoints() const {
     return num_rows * num_cols * num_bands;
@@ -112,15 +132,14 @@ struct HSIData {
   // would correspond to row 10 in the original data file.
   //
   // TODO: The ordering of the data depends on the interleave format used.
-  // TODO: Check for valid index ranges and report error if it's invalid.
-  float GetValue(const int row, const int col, const int band) const;
+  HSIDataValue GetValue(const int row, const int col, const int band) const;
 
   // Returns a vector containing the spectrum of the pixel at the given row
   // and col of the image.
-  std::vector<float> GetSpectrum(const int row, const int col) const;
+  std::vector<HSIDataValue> GetSpectrum(const int row, const int col) const;
 
   // The raw data.
-  std::vector<float> data;
+  std::vector<HSIDataValue> data;
 };
 
 // The HSIDataReader is responsible for loading the data and storing it in

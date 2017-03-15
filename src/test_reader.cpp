@@ -80,10 +80,10 @@ int main(int argc, char** argv) {
     return -1;
   }
   for (int i = 0; i < hsi_data.NumDataPoints(); ++i) {
-    if (hsi_data.data[i] != hsi_data_2.data[i]) {
+    if (hsi_data.data[i].value_as_float != hsi_data_2.data[i].value_as_float) {
       std::cerr << "Mismatched value " << i << ": "
-                << hsi_data.data[i] << " vs. " << hsi_data_2.data[i]
-                << "." << std::endl;
+                << hsi_data.data[i].value_as_float << " vs. "
+                << hsi_data_2.data[i].value_as_float << "." << std::endl;
     }
   }
 
@@ -91,15 +91,16 @@ int main(int argc, char** argv) {
   for (int row = 0; row < hsi_data.num_rows; ++row) {
     for (int col = 0; col < hsi_data.num_cols; ++col) {
       for (int band = 0; band < hsi_data.num_bands; ++band) {
-        std::cout << hsi_data.GetValue(row, col, band) << std::endl;
+        std::cout << hsi_data.GetValue(row, col, band).value_as_float
+                  << std::endl;
       }
       std::cout << "-----" << std::endl;
     }
   }
 
-  const std::vector<float> band_0 = hsi_data.GetSpectrum(0, 0);
-  for (const float val : band_0) {
-//    std::cout << val << std::endl;
+  const std::vector<hsi::HSIDataValue> band_0 = hsi_data.GetSpectrum(0, 0);
+  for (const hsi::HSIDataValue val : band_0) {
+//    std::cout << val.value_as_float << std::endl;
   }
 
   return 0;

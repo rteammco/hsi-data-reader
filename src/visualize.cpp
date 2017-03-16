@@ -82,12 +82,6 @@ int main(int argc, char** argv) {
         }
       }
     }
-    // Normalize the image to values between 0 and 1 if it isn't already.
-    // TODO: normalization may not be necessary.
-    double min_val, max_val;
-    cv::minMaxLoc(band_image, &min_val, &max_val);
-    band_image -= min_val;
-    band_image.convertTo(band_image, matrix_type, 1.0 / (max_val - min_val));
     hsi_image_bands.push_back(band_image);
   }
   if (hsi_image_bands.size() == 0) {

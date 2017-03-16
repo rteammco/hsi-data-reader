@@ -196,10 +196,12 @@ void ReadDataBIP(
       data_options.num_data_bands * data_options.num_data_cols;
   for (int row = data_range.start_row; row < data_range.end_row; ++row) {
     const long row_index = row * num_values_per_row;
-    for (int band = data_range.start_band; band < data_range.end_band; ++band) {
-      for (int col = data_range.start_col; col < data_range.end_col; ++col) {
+    for (int col = data_range.start_col; col < data_range.end_col; ++col) {
+      for (int band = data_range.start_band;
+           band < data_range.end_band;
+           ++band) {
         const long next_index =
-            row_index + band * data_options.num_data_cols + col;
+            row_index + col * data_options.num_data_bands + band;
         // Skip to next position if necessary.
         if (next_index > (current_index + 1)) {
           data_file->seekg(next_index * data_size);
@@ -207,7 +209,7 @@ void ReadDataBIP(
         HSIDataValue value;
         data_file->read(value.bytes, data_size);
         //if (data_options.big_endian != machine_big_endian) {
-        //  value.value_as_float = ReverseBytes<float>(value.value_as_float);
+        //  value.value_as_int16 = ReverseBytes<int16_t>(value.value_as_int16);
         //}
         hsi_data->data.push_back(value);
         current_index = next_index;
@@ -245,8 +247,9 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
     if (itr->second == "bsq") {
       interleave_format = HSI_INTERLEAVE_BSQ;
       std::cout << "Option set: interleave BSQ." << std::endl;
-      // } else if (itr->second == "bip") {
-      //   interleave_format = HSI_INTERLEAVE_BIP;
+    } else if (itr->second == "bip") {
+      interleave_format = HSI_INTERLEAVE_BIP;
+      std::cout << "Option set: interleave BIP." << std::endl;
     } else if (itr->second == "bil") {
       interleave_format = HSI_INTERLEAVE_BIL;
       std::cout << "Option set: interleave BIL." << std::endl;
@@ -259,7 +262,7 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
 
   itr = header_values.find("data type");
   if (itr != header_values.end()) {
-    // TODO: not currently supported beyond float.
+    // TODO: add support for more data types.
     if (itr->second == "2" || itr->second == "int16") {
       data_type = HSI_DATA_TYPE_INT16;
       std::cout << "Option set: data type int16." << std::endl;
@@ -391,6 +394,10 @@ HSIDataValue HSIData::GetValue(
     // BIL: row > band > col.
     const int row_index = (num_cols * num_bands) * row;
     index = row_index + (band * num_cols) + col;
+  } else if (interleave_format == HSI_INTERLEAVE_BIP) {
+    // BIP: row > col > band.
+    const int row_index = (num_cols * num_bands) * row;
+    index = row_index + (col * num_bands) + band;
   } else {
     std::cerr << "Unknown/unsupported interleave format." << std::endl;
   }
@@ -481,9 +488,6 @@ bool HSIDataReader::ReadData(const HSIDataRange& data_range) {
   hsi_data_.data.reserve(num_data_points);
   hsi_data_.interleave_format = data_options_.interleave_format;
   hsi_data_.data_type = data_options_.data_type;
-
-  // Determine the data type size.
-  const int data_size = sizeof(float);  // TODO: Type depends on options!
 
   if (data_options_.interleave_format == HSI_INTERLEAVE_BSQ) {
     ReadDataBSQ(

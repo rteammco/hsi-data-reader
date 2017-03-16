@@ -66,6 +66,10 @@ int main(int argc, char** argv) {
     for (int row = 0; row < hsi_data.num_rows; ++row) {
       for (int col = 0; col < hsi_data.num_cols; ++col) {
         switch (hsi_data.data_type) {
+        case hsi::HSI_DATA_TYPE_INT16:
+          band_image.at<int16_t>(row, col) =
+              hsi_data.GetValue(row, col, band).value_as_int16;
+          break;
         case hsi::HSI_DATA_TYPE_DOUBLE:
           band_image.at<double>(row, col) =
               hsi_data.GetValue(row, col, band).value_as_double;

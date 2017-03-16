@@ -99,6 +99,7 @@ struct HSIDataRange {
 union HSIDataValue {
   HSIDataValue() : value_as_uint64(0) {}
 
+  int16_t value_as_int16;
   float value_as_float;
   double value_as_double;
   unsigned long value_as_uint64;

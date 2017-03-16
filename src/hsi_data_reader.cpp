@@ -11,7 +11,7 @@
 
 namespace hsi {
 
-/*** Support Functions ***/
+/*** Support Functions and Objects ***/
 
 // Trims all whitespace from the sides of the string (including new lines).
 // Taken from:
@@ -137,7 +137,7 @@ void ReadDataBSQ(
 }
 
 // Does a data read assuming the data is in BIL format.
-// BIL is ordered as row > col > band.
+// BIL is ordered as row > band > col.
 void ReadDataBIL(
     const HSIDataOptions& data_options,
     const bool machine_big_endian,
@@ -152,16 +152,14 @@ void ReadDataBIL(
   long current_index = start_index;
   data_file->seekg(current_index * data_size);
 
-  const long num_pixels_per_row =
+  const long num_values_per_row =
       data_options.num_data_bands * data_options.num_data_cols;
   for (int row = data_range.start_row; row < data_range.end_row; ++row) {
-    const long row_index = row * num_pixels_per_row;
-    for (int col = data_range.start_col; col < data_range.end_col; ++col) {
-      for (int band = data_range.start_band;
-           band < data_range.end_band;
-           ++band) {
-        const long value_index = col * data_options.num_data_bands + band;
-        const long next_index = row_index + value_index;
+    const long row_index = row * num_values_per_row;
+    for (int band = data_range.start_band; band < data_range.end_band; ++band) {
+      for (int col = data_range.start_col; col < data_range.end_col; ++col) {
+        const long next_index =
+            row_index + band * data_options.num_data_cols + col;
         // Skip to next position if necessary.
         if (next_index > (current_index + 1)) {
           data_file->seekg(next_index * data_size);
@@ -169,7 +167,7 @@ void ReadDataBIL(
         HSIDataValue value;
         data_file->read(value.bytes, data_size);
         //if (data_options.big_endian != machine_big_endian) {
-        //  value = ReverseBytes<T>(value);
+        //  value.value_as_float = ReverseBytes<float>(value.value_as_float);
         //}
         hsi_data->data.push_back(value);
         current_index = next_index;
@@ -251,13 +249,15 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
     std::cout << "Header offset = " << header_offset << "." << std::endl;
   }
 
-  itr = header_values.find("samples");
+  //itr = header_values.find("samples");
+  itr = header_values.find("lines");
   if (itr != header_values.end()) {
     num_data_rows = std::atoi(itr->second.c_str());
     std::cout << "Number of rows = " << num_data_rows << "." << std::endl;
   }
 
-  itr = header_values.find("lines");
+  //itr = header_values.find("lines");
+  itr = header_values.find("samples");
   if (itr != header_values.end()) {
     num_data_cols = std::atoi(itr->second.c_str());
     std::cout << "Number of columns = " << num_data_cols << "." << std::endl;
@@ -336,10 +336,18 @@ HSIDataValue HSIData::GetValue(
               << " must be between 0 and " << (num_bands - 1) << std::endl;
     return HSIDataValue();
   }
-  const int num_pixels = num_rows * num_cols;
-  const int band_index = num_pixels * band;
-  const int pixel_index = row * num_cols + col;
-  const int index = band_index + pixel_index;
+  int index = 0;
+  if (interleave_format == HSI_INTERLEAVE_BSQ) {
+    // BSQ: band > row > col.
+    const int band_index = (num_rows * num_cols) * band;
+    index = band_index + (row * num_cols) + col;
+  } else if (interleave_format == HSI_INTERLEAVE_BIL) {
+    // BIL: row > band > col.
+    const int row_index = (num_cols * num_bands) * row;
+    index = row_index + (band * num_cols) + col;
+  } else {
+    std::cerr << "Unknown/unsupported interleave format." << std::endl;
+  }
   return data[index];
 }
 

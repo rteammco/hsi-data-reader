@@ -176,6 +176,46 @@ void ReadDataBIL(
   }
 }
 
+// Does a data read assuming the data is in BIP format.
+// BIP is ordered as row > col > band.
+void ReadDataBIP(
+    const HSIDataOptions& data_options,
+    const bool machine_big_endian,
+    const HSIDataRange& data_range,
+    const long start_index,
+    std::ifstream* data_file,
+    HSIData* hsi_data) {
+
+  const int data_size = GetDataSize(hsi_data->data_type);
+
+  // Skip to current index.
+  long current_index = start_index;
+  data_file->seekg(current_index * data_size);
+
+  const long num_values_per_row =
+      data_options.num_data_bands * data_options.num_data_cols;
+  for (int row = data_range.start_row; row < data_range.end_row; ++row) {
+    const long row_index = row * num_values_per_row;
+    for (int band = data_range.start_band; band < data_range.end_band; ++band) {
+      for (int col = data_range.start_col; col < data_range.end_col; ++col) {
+        const long next_index =
+            row_index + band * data_options.num_data_cols + col;
+        // Skip to next position if necessary.
+        if (next_index > (current_index + 1)) {
+          data_file->seekg(next_index * data_size);
+        }
+        HSIDataValue value;
+        data_file->read(value.bytes, data_size);
+        //if (data_options.big_endian != machine_big_endian) {
+        //  value.value_as_float = ReverseBytes<float>(value.value_as_float);
+        //}
+        hsi_data->data.push_back(value);
+        current_index = next_index;
+      }
+    }
+  }
+}
+
 /*** HSIDataOptions ***/
 
 bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
@@ -249,15 +289,21 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
     std::cout << "Header offset = " << header_offset << "." << std::endl;
   }
 
-  //itr = header_values.find("samples");
-  itr = header_values.find("lines");
+  if (interleave_format == HSI_INTERLEAVE_BSQ) {
+    itr = header_values.find("samples");
+  } else {
+    itr = header_values.find("lines");
+  }
   if (itr != header_values.end()) {
     num_data_rows = std::atoi(itr->second.c_str());
     std::cout << "Number of rows = " << num_data_rows << "." << std::endl;
   }
 
-  //itr = header_values.find("lines");
-  itr = header_values.find("samples");
+  if (interleave_format == HSI_INTERLEAVE_BSQ) {
+    itr = header_values.find("lines");
+  } else {
+    itr = header_values.find("samples");
+  }
   if (itr != header_values.end()) {
     num_data_cols = std::atoi(itr->second.c_str());
     std::cout << "Number of columns = " << num_data_cols << "." << std::endl;
@@ -449,6 +495,14 @@ bool HSIDataReader::ReadData(const HSIDataRange& data_range) {
         &hsi_data_);
   } else if (data_options_.interleave_format == HSI_INTERLEAVE_BIL) {
     ReadDataBIL(
+        data_options_,
+        machine_big_endian_,
+        data_range,
+        data_options_.header_offset,
+        &data_file,
+        &hsi_data_);
+  } else if (data_options_.interleave_format == HSI_INTERLEAVE_BIP) {
+    ReadDataBIP(
         data_options_,
         machine_big_endian_,
         data_range,

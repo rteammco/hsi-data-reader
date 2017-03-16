@@ -29,7 +29,7 @@ enum HSIDataInterleaveFormat {
   HSI_INTERLEAVE_BSQ,
 
   // TODO: implement/finish support for BIP and BIL.
-  // HSI_INTERLEAVE_BIP,
+  HSI_INTERLEAVE_BIP,
 
   // TODO: Comment.
   HSI_INTERLEAVE_BIL

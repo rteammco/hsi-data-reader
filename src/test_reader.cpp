@@ -80,11 +80,11 @@ int main(int argc, char** argv) {
     return -1;
   }
   for (int i = 0; i < hsi_data.NumDataPoints(); ++i) {
-    if (hsi_data.data[i].value_as_float != hsi_data_2.data[i].value_as_float) {
-      std::cerr << "Mismatched value " << i << ": "
-                << hsi_data.data[i].value_as_float << " vs. "
-                << hsi_data_2.data[i].value_as_float << "." << std::endl;
-    }
+    //if (hsi_data.data[i].value_as_float != hsi_data_2.data[i].value_as_float) {
+    //  std::cerr << "Mismatched value " << i << ": "
+    //            << hsi_data.data[i].value_as_float << " vs. "
+    //            << hsi_data_2.data[i].value_as_float << "." << std::endl;
+    //}
   }
 
   // Print the original results.

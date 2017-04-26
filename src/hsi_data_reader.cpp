@@ -124,12 +124,13 @@ void ReadDataBSQ(
         if (next_index > (current_index + 1)) {
           data_file->seekg(next_index * data_size);
         }
-        HSIDataValue value;
-        data_file->read(value.bytes, data_size);
+        char next_bytes[data_size];
+        data_file->read(next_bytes, data_size);
         //if (data_options.big_endian != machine_big_endian) {
         //  value.value_as_float = ReverseBytes<float>(value.value_as_float);
         //}
-        hsi_data->data.push_back(value);
+        hsi_data->raw_data.insert(
+            hsi_data->raw_data.end(), next_bytes, next_bytes + data_size);
         current_index = next_index;
       }
     }
@@ -164,12 +165,13 @@ void ReadDataBIL(
         if (next_index > (current_index + 1)) {
           data_file->seekg(next_index * data_size);
         }
-        HSIDataValue value;
-        data_file->read(value.bytes, data_size);
+        char next_bytes[data_size];
+        data_file->read(next_bytes, data_size);
         //if (data_options.big_endian != machine_big_endian) {
         //  value.value_as_float = ReverseBytes<float>(value.value_as_float);
         //}
-        hsi_data->data.push_back(value);
+        hsi_data->raw_data.insert(
+            hsi_data->raw_data.end(), next_bytes, next_bytes + data_size);
         current_index = next_index;
       }
     }
@@ -206,12 +208,13 @@ void ReadDataBIP(
         if (next_index > (current_index + 1)) {
           data_file->seekg(next_index * data_size);
         }
-        HSIDataValue value;
-        data_file->read(value.bytes, data_size);
+        char next_bytes[data_size];
+        data_file->read(next_bytes, data_size);
         //if (data_options.big_endian != machine_big_endian) {
-        //  value.value_as_int16 = ReverseBytes<int16_t>(value.value_as_int16);
+        //  value.value_as_float = ReverseBytes<float>(value.value_as_float);
         //}
-        hsi_data->data.push_back(value);
+        hsi_data->raw_data.insert(
+            hsi_data->raw_data.end(), next_bytes, next_bytes + data_size);
         current_index = next_index;
       }
     }
@@ -401,7 +404,11 @@ HSIDataValue HSIData::GetValue(
   } else {
     std::cerr << "Unknown/unsupported interleave format." << std::endl;
   }
-  return data[index];
+  const int data_size = GetDataSize(data_type);
+  const char* bytes = &(raw_data[index * data_size]);
+  HSIDataValue value;
+  std::copy(bytes, bytes + data_size, value.bytes);
+  return value;
 }
 
 std::vector<HSIDataValue> HSIData::GetSpectrum(
@@ -482,10 +489,11 @@ bool HSIDataReader::ReadData(const HSIDataRange& data_range) {
   }
 
   // Set the size of the data vector and the HSI data struct.
-  hsi_data_.data.clear();
+  hsi_data_.raw_data.clear();
   const long num_data_points =
       hsi_data_.num_rows * hsi_data_.num_cols * hsi_data_.num_bands;
-  hsi_data_.data.reserve(num_data_points);
+  const long num_bytes = num_data_points * GetDataSize(hsi_data_.data_type);
+  hsi_data_.raw_data.reserve(num_bytes);
   hsi_data_.interleave_format = data_options_.interleave_format;
   hsi_data_.data_type = data_options_.data_type;
 
@@ -528,12 +536,13 @@ bool HSIDataReader::WriteData(const std::string& save_file_path) const {
 
   // TODO: data type may not necessarily be "float".
   const int data_size = GetDataSize(hsi_data_.data_type);
-  for (const HSIDataValue value : hsi_data_.data) {
-    float write_value = value.value_as_float;
-    if (data_options_.big_endian != machine_big_endian_) {
-      write_value = ReverseBytes<float>(write_value);
-    }
-    data_file.write(reinterpret_cast<char*>(&write_value), data_size);
+  const int num_data_points = hsi_data_.raw_data.size() / data_size;
+  for (long i = 0; i < num_data_points; ++i) {
+    const char* bytes = &(hsi_data_.raw_data[i * data_size]);
+    //if (data_options_.big_endian != machine_big_endian_) {
+    //  write_value = ReverseBytes<float>(write_value);
+    //}
+    data_file.write(bytes, data_size);
   }
 
   data_file.close();

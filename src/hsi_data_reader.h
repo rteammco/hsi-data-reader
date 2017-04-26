@@ -139,8 +139,8 @@ struct HSIData {
   // and col of the image.
   std::vector<HSIDataValue> GetSpectrum(const int row, const int col) const;
 
-  // The raw data.
-  std::vector<HSIDataValue> data;
+  // The raw data as bytes.
+  std::vector<char> raw_data;
 };
 
 // The HSIDataReader is responsible for loading the data and storing it in

@@ -67,21 +67,6 @@ std::unordered_map<std::string, std::string> GetConfigFileValues(
   return config_values;
 }
 
-// Reverses the bytes of the given value (e.g. float). This is used to convert
-// from the data's endian form into the machine's endian form when they are not
-// matched up.
-template <typename T>
-T ReverseBytes(const T value) {
-  T reversed_value;
-  const unsigned char* original_bytes = (const unsigned char*)(&value);
-  unsigned char* reversed_bytes  = (unsigned char*)(&reversed_value);
-  const int num_bytes = sizeof(T);
-  for (int i = 0; i < num_bytes; ++i) {
-    reversed_bytes[i] = original_bytes[num_bytes - 1 - i];
-  }
-  return reversed_value;
-}
-
 // Returns the size of the data value based on the given HSIDataType.
 int GetDataSize(const HSIDataType& data_type) {
   // TODO: Add support for more types.
@@ -93,6 +78,17 @@ int GetDataSize(const HSIDataType& data_type) {
     case HSI_DATA_TYPE_FLOAT:
     default:
       return sizeof(float);
+  }
+}
+
+// Reverse the bytes in the given bytes array. Assumes that the given array
+// contains data_size values.
+void ReverseBytes(const int data_size, char* bytes) {
+  for (int i = 0; i < data_size / 2; ++i) {
+    const int end_index = data_size - 1 - i;
+    const char temp = bytes[i];
+    bytes[i] = bytes[end_index];
+    bytes[end_index] = temp;
   }
 }
 
@@ -114,7 +110,7 @@ void ReadNextValue(
   char next_bytes[data_size];
   data_file->read(next_bytes, data_size);
   if (reverse_byte_order) {
-    // TODO: Reverse bytes.
+    ReverseBytes(data_size, next_bytes);
   }
   raw_data->insert(raw_data->end(), next_bytes, next_bytes + data_size);
 }

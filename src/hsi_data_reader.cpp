@@ -547,14 +547,20 @@ bool HSIDataReader::WriteData(const std::string& save_file_path) const {
     return false;
   }
 
-  // TODO: data type may not necessarily be "float".
+  const bool reverse_byte_order =
+      (data_options_.big_endian != machine_big_endian_);
   const int data_size = GetDataSize(hsi_data_.data_type);
   const int num_data_points = hsi_data_.raw_data.size() / data_size;
   for (long i = 0; i < num_data_points; ++i) {
-    const char* bytes = &(hsi_data_.raw_data[i * data_size]);
-    //if (data_options_.big_endian != machine_big_endian_) {
-    //  write_value = ReverseBytes<float>(write_value);
-    //}
+    const long byte_index = i * data_size;
+    char bytes[data_size];
+    std::copy(
+        hsi_data_.raw_data.begin() + byte_index,
+        hsi_data_.raw_data.begin() + byte_index + data_size,
+        bytes);
+    if (reverse_byte_order) {
+      ReverseBytes(data_size, bytes);
+    }
     data_file.write(bytes, data_size);
   }
 

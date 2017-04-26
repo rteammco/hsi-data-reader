@@ -96,6 +96,29 @@ int GetDataSize(const HSIDataType& data_type) {
   }
 }
 
+// Reads the next value in the file from the given file value index. This is
+// a generic binary data read, and can be used to read the next value (of any
+// bye size) from an HSI file.
+void ReadNextValue(
+    const long next_value_index,
+    const long current_value_index,
+    const int data_size,
+    std::ifstream* data_file,
+    std::vector<char>* raw_data,
+    const bool reverse_byte_order) {
+
+  // Skip to next position if necessary.
+  if (next_value_index > (current_value_index + 1)) {
+    data_file->seekg(next_value_index * data_size);
+  }
+  char next_bytes[data_size];
+  data_file->read(next_bytes, data_size);
+  if (reverse_byte_order) {
+    // TODO: Reverse bytes.
+  }
+  raw_data->insert(raw_data->end(), next_bytes, next_bytes + data_size);
+}
+
 // Does a data read assuming the data is in BSQ format.
 // BSQ is ordered as band > row > col.
 void ReadDataBSQ(
@@ -112,6 +135,8 @@ void ReadDataBSQ(
   long current_index = start_index;
   data_file->seekg(current_index * data_size);
 
+  const bool reverse_byte_order =
+      (data_options.big_endian != machine_big_endian);
   const long num_pixels_per_band =
       data_options.num_data_rows * data_options.num_data_cols;
   for (int band = data_range.start_band; band < data_range.end_band; ++band) {
@@ -120,17 +145,13 @@ void ReadDataBSQ(
       for (int col = data_range.start_col; col < data_range.end_col; ++col) {
         const long pixel_index = row * data_options.num_data_cols + col;
         const long next_index = band_index + pixel_index;
-        // Skip to next position if necessary.
-        if (next_index > (current_index + 1)) {
-          data_file->seekg(next_index * data_size);
-        }
-        char next_bytes[data_size];
-        data_file->read(next_bytes, data_size);
-        //if (data_options.big_endian != machine_big_endian) {
-        //  value.value_as_float = ReverseBytes<float>(value.value_as_float);
-        //}
-        hsi_data->raw_data.insert(
-            hsi_data->raw_data.end(), next_bytes, next_bytes + data_size);
+        ReadNextValue(
+            next_index,
+            current_index,
+            data_size,
+            data_file,
+            &(hsi_data->raw_data),
+            reverse_byte_order);
         current_index = next_index;
       }
     }
@@ -153,6 +174,8 @@ void ReadDataBIL(
   long current_index = start_index;
   data_file->seekg(current_index * data_size);
 
+  const bool reverse_byte_order =
+      (data_options.big_endian != machine_big_endian);
   const long num_values_per_row =
       data_options.num_data_bands * data_options.num_data_cols;
   for (int row = data_range.start_row; row < data_range.end_row; ++row) {
@@ -161,17 +184,13 @@ void ReadDataBIL(
       for (int col = data_range.start_col; col < data_range.end_col; ++col) {
         const long next_index =
             row_index + band * data_options.num_data_cols + col;
-        // Skip to next position if necessary.
-        if (next_index > (current_index + 1)) {
-          data_file->seekg(next_index * data_size);
-        }
-        char next_bytes[data_size];
-        data_file->read(next_bytes, data_size);
-        //if (data_options.big_endian != machine_big_endian) {
-        //  value.value_as_float = ReverseBytes<float>(value.value_as_float);
-        //}
-        hsi_data->raw_data.insert(
-            hsi_data->raw_data.end(), next_bytes, next_bytes + data_size);
+        ReadNextValue(
+            next_index,
+            current_index,
+            data_size,
+            data_file,
+            &(hsi_data->raw_data),
+            reverse_byte_order);
         current_index = next_index;
       }
     }
@@ -194,6 +213,8 @@ void ReadDataBIP(
   long current_index = start_index;
   data_file->seekg(current_index * data_size);
 
+  const bool reverse_byte_order =
+      (data_options.big_endian != machine_big_endian);
   const long num_values_per_row =
       data_options.num_data_bands * data_options.num_data_cols;
   for (int row = data_range.start_row; row < data_range.end_row; ++row) {
@@ -204,17 +225,13 @@ void ReadDataBIP(
            ++band) {
         const long next_index =
             row_index + col * data_options.num_data_bands + band;
-        // Skip to next position if necessary.
-        if (next_index > (current_index + 1)) {
-          data_file->seekg(next_index * data_size);
-        }
-        char next_bytes[data_size];
-        data_file->read(next_bytes, data_size);
-        //if (data_options.big_endian != machine_big_endian) {
-        //  value.value_as_float = ReverseBytes<float>(value.value_as_float);
-        //}
-        hsi_data->raw_data.insert(
-            hsi_data->raw_data.end(), next_bytes, next_bytes + data_size);
+        ReadNextValue(
+            next_index,
+            current_index,
+            data_size,
+            data_file,
+            &(hsi_data->raw_data),
+            reverse_byte_order);
         current_index = next_index;
       }
     }

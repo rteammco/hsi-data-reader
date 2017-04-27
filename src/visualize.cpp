@@ -40,6 +40,9 @@ int GetOpenCVMatrixType(const hsi::HSIDataType data_type) {
   case hsi::HSI_DATA_TYPE_DOUBLE:
     matrix_type = CV_64FC1;
     break;
+  case hsi::HSI_DATA_TYPE_UNSIGNED_INT16:
+    matrix_type = CV_16UC1;
+    break;
   case hsi::HSI_DATA_TYPE_FLOAT:
   default:
     matrix_type = CV_32FC1;
@@ -63,6 +66,9 @@ void SetBandImagePixel(
     break;
   case hsi::HSI_DATA_TYPE_DOUBLE:
     band_image->at<double>(row, col) = value.value_as_double;
+    break;
+  case hsi::HSI_DATA_TYPE_UNSIGNED_INT16:
+    band_image->at<uint16_t>(row, col) = value.value_as_uint16;
     break;
   case hsi::HSI_DATA_TYPE_FLOAT:
   default:
@@ -140,6 +146,7 @@ void MouseEventCallback(
         hsi_data->GetSpectrum(y_pos, x_pos);
     std::vector<float> spectrum_floats;
     for (const hsi::HSIDataValue value : spectrum) {
+      // TODO: This is not always going to be float values!
       spectrum_floats.push_back(value.value_as_float);
     }
     cv::Mat spectrum_plot = CreatePlot(spectrum_floats);

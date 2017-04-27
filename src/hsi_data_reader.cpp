@@ -87,6 +87,8 @@ int GetDataSize(const HSIDataType& data_type) {
       return sizeof(int16_t);
     case HSI_DATA_TYPE_DOUBLE:
       return sizeof(double);
+    case HSI_DATA_TYPE_UNSIGNED_INT16:
+      return sizeof(uint16_t);
     case HSI_DATA_TYPE_FLOAT:
     default:
       return sizeof(float);
@@ -299,6 +301,9 @@ void HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
     } else if (itr->second == "5" || itr->second == "double") {
       data_type = HSI_DATA_TYPE_DOUBLE;
       std::cout << "Option set: data type double." << std::endl;
+    } else if (itr->second == "12" || itr->second == "uint16") {
+      data_type = HSI_DATA_TYPE_UNSIGNED_INT16;
+      std::cout << "Option set: data type unsigned int16." << std::endl;
     } else {
       FatalError("Unsupported/unknown data type: " + itr->second);
     }

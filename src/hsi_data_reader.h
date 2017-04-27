@@ -102,6 +102,7 @@ union HSIDataValue {
   int16_t value_as_int16;
   float value_as_float;
   double value_as_double;
+  uint16_t value_as_uint16;
   unsigned long value_as_uint64;
   char bytes[8];
 };

@@ -15,6 +15,8 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
+static const std::string kMainWindowName = "HSI Image Visualization";
+
 // Returns the OpenCV matrix type to use, depending on the HSI data type.
 // TODO: Add support for more types.
 int GetOpenCVMatrixType(const hsi::HSIDataType data_type) {
@@ -62,7 +64,26 @@ void SetBandImagePixel(
 void SliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
   std::vector<cv::Mat>* hsi_image_bands =
       reinterpret_cast<std::vector<cv::Mat>*>(hsi_image_bands_ptr);
-  cv::imshow("HSI Image Visualization", hsi_image_bands->at(slider_value));
+  cv::imshow(kMainWindowName, hsi_image_bands->at(slider_value));
+}
+
+// Callback function for mouse events. When the user clicks on a pixel, display
+// the spectrum in a separate window.
+void MouseEventCallback(
+    const int event,
+    const int x_pos,
+    const int y_pos,
+    const int flags,
+    void* hsi_data_ptr) {
+
+  if (event == CV_EVENT_LBUTTONDOWN) {
+    const hsi::HSIData* hsi_data =
+        reinterpret_cast<hsi::HSIData*>(hsi_data_ptr);
+    const std::vector<hsi::HSIDataValue> spectrum =
+        hsi_data->GetSpectrum(x_pos, y_pos);
+    std::cout << "Clicked at " << x_pos << ", " << y_pos
+              << ", got spectrum of size: " << spectrum.size() << std::endl;
+  }
 }
 
 int main(int argc, char** argv) {
@@ -109,16 +130,20 @@ int main(int argc, char** argv) {
   }
 
   // Visualize the images so that the user can view them per-channel.
-  cv::namedWindow("HSI Image Visualization");
+  cv::namedWindow(kMainWindowName);
+  cv::setMouseCallback(
+      kMainWindowName,
+      MouseEventCallback,
+      const_cast<void*>(reinterpret_cast<const void*>(&hsi_data)));
   int slider_value;
   cv::createTrackbar(
       "Band Selector",
-      "HSI Image Visualization",
+      kMainWindowName,
       &slider_value,
       hsi_image_bands.size() - 1,
       SliderMovedCallback,
       reinterpret_cast<void*>(&hsi_image_bands));
-  cv::imshow("HSI Image Visualization", hsi_image_bands[0]);
+  cv::imshow(kMainWindowName, hsi_image_bands[0]);
   std::cout << "Visualizing data. Press any key to close window." << std::endl;
   cv::waitKey(0);
 

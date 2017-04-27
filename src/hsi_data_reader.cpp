@@ -11,7 +11,9 @@
 
 namespace hsi {
 
-/*** Support Functions and Objects ***/
+/*******************************************************************************
+*** Support Functions and Objects
+*******************************************************************************/
 
 // Trims all whitespace from the sides of the string (including new lines).
 // Taken from:
@@ -107,7 +109,7 @@ void ReadNextValue(
   if (next_value_index > (current_value_index + 1)) {
     data_file->seekg(next_value_index * data_size);
   }
-  char next_bytes[data_size];
+  char next_bytes[data_size];  // NOLINT
   data_file->read(next_bytes, data_size);
   if (reverse_byte_order) {
     ReverseBytes(data_size, next_bytes);
@@ -234,7 +236,9 @@ void ReadDataBIP(
   }
 }
 
-/*** HSIDataOptions ***/
+/*******************************************************************************
+*** HSIDataOptions
+*******************************************************************************/
 
 bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   std::unordered_map<std::string, std::string> header_values =
@@ -337,7 +341,9 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   return true;
 }
 
-/*** HSIDataRange ***/
+/*******************************************************************************
+*** HSIDataRange
+*******************************************************************************/
 
 bool HSIDataRange::ReadRangeFromFile(const std::string& range_config_file) {
   std::unordered_map<std::string, std::string> range_values =
@@ -381,7 +387,9 @@ bool HSIDataRange::ReadRangeFromFile(const std::string& range_config_file) {
   return true;
 }
 
-/*** HSIData ***/
+/*******************************************************************************
+*** HSIData
+*******************************************************************************/
 
 HSIDataValue HSIData::GetValue(
     const int row, const int col, const int band) const {
@@ -435,7 +443,9 @@ std::vector<HSIDataValue> HSIData::GetSpectrum(
   return spectrum;
 }
 
-/*** HSIDataReader ***/
+/*******************************************************************************
+*** HSIDataReader
+*******************************************************************************/
 
 HSIDataReader::HSIDataReader(const HSIDataOptions& data_options)
     : data_options_(data_options) {
@@ -553,7 +563,7 @@ bool HSIDataReader::WriteData(const std::string& save_file_path) const {
   const int num_data_points = hsi_data_.raw_data.size() / data_size;
   for (long i = 0; i < num_data_points; ++i) {
     const long byte_index = i * data_size;
-    char bytes[data_size];
+    char bytes[data_size];  // NOLINT
     std::copy(
         hsi_data_.raw_data.begin() + byte_index,
         hsi_data_.raw_data.begin() + byte_index + data_size,

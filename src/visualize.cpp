@@ -6,6 +6,7 @@
 //
 // See data/config.txt for an example.
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -21,11 +22,12 @@ static const std::string kMainWindowName = "HSI Image Visualization";
 static const std::string kSpectrumWindowName = "Pixel Spectrum";
 
 // Spectrum plot window properties.
-constexpr int kSpectrumPlotHeight = 250;
-constexpr int kSpectrumPlotWidth = 600;
+constexpr int kSpectrumPlotHeight = 400;
+constexpr int kSpectrumPlotWidth = 800;
 constexpr int kSpectrumPlotLineThickness = 1;
 static const cv::Scalar kSpectrumPlotBackgroundColor(255, 255, 255);
 static const cv::Scalar kSpectrumPlotLineColor(25, 25, 255);
+static const cv::Scalar kSpectrumZeroLineColor(0, 255, 0);
 
 // Returns the OpenCV matrix type to use, depending on the HSI data type.
 // TODO: Add support for more types.
@@ -82,25 +84,36 @@ void SliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
 cv::Mat CreatePlot(const std::vector<float>& plot_values) {
   const auto min_max_value =
       std::minmax_element(plot_values.begin(), plot_values.end());
-  const float min_value = *min_max_value.first;
-  const float max_value = *min_max_value.second;
+  const double min_raw_value = *min_max_value.first;
+  const double max_raw_value = *min_max_value.second;
+  const double range_from_zero =
+      std::max(std::abs(min_raw_value), std::abs(max_raw_value));
   // How much space between each spectrum value along the X axis:
   const double space_between_points =
       static_cast<double>(kSpectrumPlotWidth) /
       static_cast<double>(plot_values.size());
   // The number of pixels between a single whole Y value:
-  const double y_scale = kSpectrumPlotHeight / (max_value - min_value);
+  const double y_scale = kSpectrumPlotHeight / (2 * range_from_zero);
   // Create the image:
   cv::Mat plot_image =
       cv::Mat::zeros(kSpectrumPlotHeight, kSpectrumPlotWidth, CV_8UC3);
   plot_image.setTo(kSpectrumPlotBackgroundColor);
+  // Draw line:
+  cv::line(
+      plot_image,
+      cv::Point(0, y_scale * range_from_zero),
+      cv::Point(kSpectrumPlotWidth, y_scale * range_from_zero),
+      kSpectrumZeroLineColor,
+      kSpectrumPlotLineThickness);
+  // Draw the spectrum:
   for (int i = 0; i < plot_values.size() - 1; ++i) {
     const cv::Point point1(
         i * space_between_points,
-        kSpectrumPlotHeight - (y_scale * plot_values[i]));
+        kSpectrumPlotHeight - (y_scale * (plot_values[i] + range_from_zero)));
     const cv::Point point2(
         (i + 1) * space_between_points,
-        kSpectrumPlotHeight - (y_scale * plot_values[i + 1]));
+        kSpectrumPlotHeight -
+            (y_scale * (plot_values[i + 1] + range_from_zero)));
     cv::line(
         plot_image,
         point1,

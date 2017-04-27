@@ -14,8 +14,18 @@
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
 
+// Names of the windows to be displayed.
 static const std::string kMainWindowName = "HSI Image Visualization";
+static const std::string kSpectrumWindowName = "Pixel Spectrum";
+
+// Spectrum plot window properties.
+constexpr int kSpectrumPlotHeight = 250;
+constexpr int kSpectrumPlotWidth = 600;
+constexpr int kSpectrumPlotLineThickness = 1;
+static const cv::Scalar kSpectrumPlotBackgroundColor(255, 255, 255);
+static const cv::Scalar kSpectrumPlotLineColor(25, 25, 255);
 
 // Returns the OpenCV matrix type to use, depending on the HSI data type.
 // TODO: Add support for more types.
@@ -67,6 +77,40 @@ void SliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
   cv::imshow(kMainWindowName, hsi_image_bands->at(slider_value));
 }
 
+// Generates a line plot for the spectrum consisting of the given vector of
+// values. The plot is returned as a regular OpenCV image.
+cv::Mat CreatePlot(const std::vector<float>& plot_values) {
+  const auto min_max_value =
+      std::minmax_element(plot_values.begin(), plot_values.end());
+  const float min_value = *min_max_value.first;
+  const float max_value = *min_max_value.second;
+  // How much space between each spectrum value along the X axis:
+  const double space_between_points =
+      static_cast<double>(kSpectrumPlotWidth) /
+      static_cast<double>(plot_values.size());
+  // The number of pixels between a single whole Y value:
+  const double y_scale = kSpectrumPlotHeight / (max_value - min_value);
+  // Create the image:
+  cv::Mat plot_image =
+      cv::Mat::zeros(kSpectrumPlotHeight, kSpectrumPlotWidth, CV_8UC3);
+  plot_image.setTo(kSpectrumPlotBackgroundColor);
+  for (int i = 0; i < plot_values.size() - 1; ++i) {
+    const cv::Point point1(
+        i * space_between_points,
+        kSpectrumPlotHeight - (y_scale * plot_values[i]));
+    const cv::Point point2(
+        (i + 1) * space_between_points,
+        kSpectrumPlotHeight - (y_scale * plot_values[i + 1]));
+    cv::line(
+        plot_image,
+        point1,
+        point2,
+        kSpectrumPlotLineColor,
+        kSpectrumPlotLineThickness);
+  }
+  return plot_image;
+}
+
 // Callback function for mouse events. When the user clicks on a pixel, display
 // the spectrum in a separate window.
 void MouseEventCallback(
@@ -80,9 +124,14 @@ void MouseEventCallback(
     const hsi::HSIData* hsi_data =
         reinterpret_cast<hsi::HSIData*>(hsi_data_ptr);
     const std::vector<hsi::HSIDataValue> spectrum =
-        hsi_data->GetSpectrum(x_pos, y_pos);
-    std::cout << "Clicked at " << x_pos << ", " << y_pos
-              << ", got spectrum of size: " << spectrum.size() << std::endl;
+        hsi_data->GetSpectrum(y_pos, x_pos);
+    std::vector<float> spectrum_floats;
+    for (const hsi::HSIDataValue value : spectrum) {
+      spectrum_floats.push_back(value.value_as_float);
+    }
+    cv::Mat spectrum_plot = CreatePlot(spectrum_floats);
+    cv::namedWindow(kSpectrumWindowName);
+    cv::imshow(kSpectrumWindowName, spectrum_plot);
   }
 }
 
@@ -146,6 +195,7 @@ int main(int argc, char** argv) {
   cv::imshow(kMainWindowName, hsi_image_bands[0]);
   std::cout << "Visualizing data. Press any key to close window." << std::endl;
   cv::waitKey(0);
+  cv::destroyAllWindows();
 
   return 0;
 }

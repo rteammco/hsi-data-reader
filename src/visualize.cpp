@@ -15,6 +15,50 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
+// Returns the OpenCV matrix type to use, depending on the HSI data type.
+// TODO: Add support for more types.
+int GetOpenCVMatrixType(const hsi::HSIDataType data_type) {
+  int matrix_type;
+  switch (data_type) {
+  case hsi::HSI_DATA_TYPE_INT16:
+    matrix_type = CV_16SC1;
+    break;
+  case hsi::HSI_DATA_TYPE_DOUBLE:
+    matrix_type = CV_64FC1;
+    break;
+  case hsi::HSI_DATA_TYPE_FLOAT:
+  default:
+    matrix_type = CV_32FC1;
+    break;
+  }
+  return matrix_type;
+}
+
+// Set the pixel value of the matrix, interprented based on the type of data.
+// TODO: Add support for more types.
+void SetBandImagePixel(
+    const int row,
+    const int col,
+    const hsi::HSIDataValue value,
+    const hsi::HSIDataType data_type,
+    cv::Mat* band_image) {
+
+  switch (data_type) {
+  case hsi::HSI_DATA_TYPE_INT16:
+    band_image->at<int16_t>(row, col) = value.value_as_int16;
+    break;
+  case hsi::HSI_DATA_TYPE_DOUBLE:
+    band_image->at<double>(row, col) = value.value_as_double;
+    break;
+  case hsi::HSI_DATA_TYPE_FLOAT:
+  default:
+    band_image->at<float>(row, col) = value.value_as_float;
+    break;
+  }
+}
+
+// Callback function for the slider, which will switch the display between
+// different bands of the hyperspectral image.
 void SliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
   std::vector<cv::Mat>* hsi_image_bands =
       reinterpret_cast<std::vector<cv::Mat>*>(hsi_image_bands_ptr);
@@ -44,39 +88,17 @@ int main(int argc, char** argv) {
   const hsi::HSIData& hsi_data = reader.GetData();
   const cv::Size band_image_size(hsi_data.num_cols, hsi_data.num_rows);
   std::vector<cv::Mat> hsi_image_bands;
-  int matrix_type;
-  switch (hsi_data.data_type) {
-    // TODO: Add support for more types.
-    case hsi::HSI_DATA_TYPE_INT16:
-      matrix_type = CV_16SC1;
-      break;
-    case hsi::HSI_DATA_TYPE_DOUBLE:
-      matrix_type = CV_64FC1;
-      break;
-    case hsi::HSI_DATA_TYPE_FLOAT:
-    default:
-      matrix_type = CV_32FC1;
-      break;
-  }
+  const int matrix_type = GetOpenCVMatrixType(hsi_data.data_type);
   for (int band = 0; band < hsi_data.num_bands; ++band) {
     cv::Mat band_image(band_image_size, matrix_type);
     for (int row = 0; row < hsi_data.num_rows; ++row) {
       for (int col = 0; col < hsi_data.num_cols; ++col) {
-        switch (hsi_data.data_type) {
-        case hsi::HSI_DATA_TYPE_INT16:
-          band_image.at<int16_t>(row, col) =
-              hsi_data.GetValue(row, col, band).value_as_int16;
-          break;
-        case hsi::HSI_DATA_TYPE_DOUBLE:
-          band_image.at<double>(row, col) =
-              hsi_data.GetValue(row, col, band).value_as_double;
-          break;
-        case hsi::HSI_DATA_TYPE_FLOAT:
-        default:
-          band_image.at<float>(row, col) =
-              hsi_data.GetValue(row, col, band).value_as_float;
-          break;
-        }
+        SetBandImagePixel(
+            row,
+            col,
+            hsi_data.GetValue(row, col, band),
+            hsi_data.data_type,
+            &band_image);
       }
     }
     hsi_image_bands.push_back(band_image);

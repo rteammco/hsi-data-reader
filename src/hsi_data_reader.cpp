@@ -15,6 +15,16 @@ namespace hsi {
 *** Support Functions and Objects
 *******************************************************************************/
 
+// These functions are used to report errors and quit the program if necessary.
+void Error(const std::string& message) {
+  std::cerr << "Error: \"" << message << "\"." << std::endl;
+}
+void FatalError(const std::string& message) {
+  Error(message);
+  std::cerr << "Terminating program with fatal error." << std::endl;
+  exit(-1);
+}
+
 // Trims all whitespace from the sides of the string (including new lines).
 // Taken from:
 // http://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
@@ -44,8 +54,8 @@ std::unordered_map<std::string, std::string> GetConfigFileValues(
 
   std::ifstream config_file(config_file_path);
   if (!config_file.is_open()) {
-    std::cerr << "Configuration file '" << config_file_path
-              << "' could not be opened for reading." << std::endl;
+    Error("Configuration file '" + config_file_path +
+          "' could not be opened for reading.");
     return config_values;
   }
 
@@ -240,12 +250,11 @@ void ReadDataBIP(
 *** HSIDataOptions
 *******************************************************************************/
 
-bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
+void HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   std::unordered_map<std::string, std::string> header_values =
       GetConfigFileValues(header_file_path);
   if (header_values.empty()) {
-    std::cerr << "No header values available." << std::endl;
-    return false;
+    FatalError("No header values available.");
   }
   std::unordered_map<std::string, std::string>::const_iterator itr;
 
@@ -274,9 +283,7 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
       interleave_format = HSI_INTERLEAVE_BIL;
       std::cout << "Option set: interleave BIL." << std::endl;
     } else {
-      std::cerr << "Unsupported/unknown data interleave format: "
-                << itr->second << std::endl;
-      return false;
+      FatalError("Unsupported/unknown data interleave format: " + itr->second);
     }
   }
 
@@ -293,9 +300,7 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
       data_type = HSI_DATA_TYPE_DOUBLE;
       std::cout << "Option set: data type double." << std::endl;
     } else {
-      std::cerr << "Unsupported/unknown data type: "
-                << itr->second << std::endl;
-      return false;
+      FatalError("Unsupported/unknown data type: " + itr->second);
     }
   }
 
@@ -337,20 +342,17 @@ bool HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
     num_data_bands = std::atoi(itr->second.c_str());
     std::cout << "Number of bands = " << num_data_bands << "." << std::endl;
   }
-
-  return true;
 }
 
 /*******************************************************************************
 *** HSIDataRange
 *******************************************************************************/
 
-bool HSIDataRange::ReadRangeFromFile(const std::string& range_config_file) {
+void HSIDataRange::ReadRangeFromFile(const std::string& range_config_file) {
   std::unordered_map<std::string, std::string> range_values =
       GetConfigFileValues(range_config_file);
   if (range_values.empty()) {
-    std::cerr << "No range values available." << std::endl;
-    return false;
+    FatalError("No range values available.");
   }
   std::unordered_map<std::string, std::string>::const_iterator itr;
 
@@ -383,8 +385,6 @@ bool HSIDataRange::ReadRangeFromFile(const std::string& range_config_file) {
   if (itr != range_values.end()) {
     end_band = std::atoi(itr->second.c_str());
   }
-
-  return true;
 }
 
 /*******************************************************************************
@@ -395,18 +395,18 @@ HSIDataValue HSIData::GetValue(
     const int row, const int col, const int band) const {
 
   if (row < 0 || row >= num_rows) {
-    std::cerr << "Row index out of range: " << row
-              << " must be between 0 and " << (num_rows - 1) << std::endl;
+    Error("Row index out of range: " + std::to_string(row) +
+          " must be between 0 and " + std::to_string(num_rows - 1));
     return HSIDataValue();
   }
   if (col < 0 || col >= num_cols) {
-    std::cerr << "Column index out of range: " << col
-              << " must be between 0 and " << (num_cols - 1) << std::endl;
+    Error("Column index out of range: " + std::to_string(col) +
+          " must be between 0 and " + std::to_string(num_cols - 1));
     return HSIDataValue();
   }
   if (band < 0 || band >= num_bands) {
-    std::cerr << "Band index out of range: " << band
-              << " must be between 0 and " << (num_bands - 1) << std::endl;
+    Error("Band index out of range: " + std::to_string(band) +
+          " must be between 0 and " + std::to_string(num_bands - 1));
     return HSIDataValue();
   }
   int index = 0;
@@ -423,7 +423,7 @@ HSIDataValue HSIData::GetValue(
     const int row_index = (num_cols * num_bands) * row;
     index = row_index + (col * num_bands) + band;
   } else {
-    std::cerr << "Unknown/unsupported interleave format." << std::endl;
+    Error("Unknown/unsupported interleave format.");
   }
   const int data_size = GetDataSize(data_type);
   const char* bytes = &(raw_data[index * data_size]);
@@ -465,25 +465,22 @@ HSIDataReader::HSIDataReader(const HSIDataOptions& data_options)
   machine_big_endian_ = (number.bytes[0] != 1U);
 }
 
-bool HSIDataReader::ReadData(const HSIDataRange& data_range) {
+void HSIDataReader::ReadData(const HSIDataRange& data_range) {
   // Check that the given ranges are valid.
   if (data_range.start_row < 0 ||
       data_range.end_row > data_options_.num_data_rows) {
-    std::cerr << "Invalid row range: must be between 0 and "
-              << data_options_.num_data_rows << std::endl;
-    return false;
+    FatalError("Invalid row range: must be between 0 and " +
+               std::to_string(data_options_.num_data_rows));
   }
   if (data_range.start_col < 0 ||
       data_range.end_col > data_options_.num_data_cols) {
-    std::cerr << "Invalid column range: must be between 0 and "
-              << data_options_.num_data_cols << std::endl;
-    return false;
+    FatalError("Invalid column range: must be between 0 and " +
+               std::to_string(data_options_.num_data_cols));
   }
   if (data_range.start_band < 0 ||
       data_range.end_band > data_options_.num_data_bands) {
-    std::cerr << "Invalid band range: must be between 0 and "
-              << data_options_.num_data_bands << std::endl;
-    return false;
+    FatalError("Invalid band range: must be between 0 and " +
+               std::to_string(data_options_.num_data_bands));
   }
 
   // Check that the ranges are positive / valid.
@@ -491,24 +488,20 @@ bool HSIDataReader::ReadData(const HSIDataRange& data_range) {
   hsi_data_.num_cols = data_range.end_col - data_range.start_col;
   hsi_data_.num_bands = data_range.end_band - data_range.start_band;
   if (hsi_data_.num_rows <= 0) {
-    std::cerr << "Row range must be positive." << std::endl;
-    return false;
+    FatalError("Row range must be positive.");
   }
   if (hsi_data_.num_cols <= 0) {
-    std::cerr << "Column range must be positive." << std::endl;
-    return false;
+    FatalError("Column range must be positive.");
   }
   if (hsi_data_.num_bands <= 0) {
-    std::cerr << "Band range must be positive." << std::endl;
-    return false;
+    FatalError("Band range must be positive.");
   }
 
   // Try to open the file.
   std::ifstream data_file(data_options_.hsi_file_path);
   if (!data_file.is_open()) {
-    std::cerr << "File " << data_options_.hsi_file_path
-              << " could not be opened for reading." << std::endl;
-    return false;
+    FatalError("File " + data_options_.hsi_file_path +
+               " could not be opened for reading.");
   }
 
   // Set the size of the data vector and the HSI data struct.
@@ -545,16 +538,13 @@ bool HSIDataReader::ReadData(const HSIDataRange& data_range) {
         &data_file,
         &hsi_data_);
   }
-
-  return true;
 }
 
-bool HSIDataReader::WriteData(const std::string& save_file_path) const {
+void HSIDataReader::WriteData(const std::string& save_file_path) const {
   std::ofstream data_file(save_file_path);
   if (!data_file.is_open()) {
-    std::cerr << "File " << save_file_path
-              << " could not be opened for writing." << std::endl;
-    return false;
+    FatalError("File " + save_file_path +
+               " could not be opened for writing.");
   }
 
   const bool reverse_byte_order =
@@ -575,7 +565,6 @@ bool HSIDataReader::WriteData(const std::string& save_file_path) const {
   }
 
   data_file.close();
-  return true;
 }
 
 }  // namespace hsi

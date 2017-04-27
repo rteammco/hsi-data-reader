@@ -38,10 +38,7 @@ int main(int argc, char** argv) {
   hsi::HSIDataReader reader(data_options);
   std::cout << "Reading data from file '" << data_options.hsi_file_path
             << "'." << std::endl;
-  const bool success = reader.ReadData(data_range);
-  if (!success) {
-    return -1;
-  }
+  reader.ReadData(data_range);
 
   // Create OpenCV images from the data.
   const hsi::HSIData& hsi_data = reader.GetData();

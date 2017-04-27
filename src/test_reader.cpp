@@ -39,10 +39,7 @@ int main(int argc, char** argv) {
 
   HSIDataReader reader(data_options);
   std::cout << "Reading data from file '" << file_path << "'." << std::endl;
-  const bool success = reader.ReadData(data_range);
-  if (!success) {
-    return -1;
-  }
+  reader.ReadData(data_range);
 
   const HSIData& hsi_data = reader.GetData();
   std::cout << "Successfully loaded " << hsi_data.NumDataPoints()
@@ -50,9 +47,7 @@ int main(int argc, char** argv) {
 
   // Write the data.
   const std::string temp_save_path = "./tmp_data";
-  if (!reader.WriteData(temp_save_path)) {
-    return -1;
-  }
+  reader.WriteData(temp_save_path);
 
   // Read the written-out data and check if it's the same as before.
   HSIDataOptions data_options_2(temp_save_path);

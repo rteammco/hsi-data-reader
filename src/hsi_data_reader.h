@@ -57,9 +57,9 @@ struct HSIDataOptions {
   explicit HSIDataOptions(const std::string& hsi_file_path)
       : hsi_file_path(hsi_file_path) {}
 
-  // Attempts to read the header information from an HSI header file. Returns
-  // true if the read was successful and the information was loaded.
-  bool ReadHeaderFromFile(const std::string& header_file_path);
+  // Attempts to read the header information from an HSI header file. Fatal
+  // error if the read was unsuccessful and the information was not loaded.
+  void ReadHeaderFromFile(const std::string& header_file_path);
 
   // Path to the binary hyperspectral data file.
   std::string hsi_file_path;
@@ -83,9 +83,9 @@ struct HSIDataOptions {
 // Data range object is used for specifying the data range to read with the
 // HSIDataReader.
 struct HSIDataRange {
-  // Attempts to read the data range information from config file. Returns true
-  // if the read was successful and the information was loaded.
-  bool ReadRangeFromFile(const std::string& range_config_file);
+  // Attempts to read the data range information from config file. Fatal error
+  // if the read fails and the information was not loaded.
+  void ReadRangeFromFile(const std::string& range_config_file);
   int start_band = 0;
   int end_band = 0;
   int start_row = 0;
@@ -156,7 +156,7 @@ class HSIDataReader {
   //   start_row = 2,
   //   end_row = 7
   // will return rows (2, 3, 4, 5, 6) where the first row in the data is row 0.
-  bool ReadData(const HSIDataRange& data_range);
+  void ReadData(const HSIDataRange& data_range);
 
   void SetData(const HSIData& hsi_data) {
     hsi_data_ = hsi_data;
@@ -165,7 +165,7 @@ class HSIDataReader {
   // Writes the data currently stored in hsi_data_ in the order that it was
   // loaded in. Endian format is preserved from the original data. Returns true
   // on success.
-  bool WriteData(const std::string& save_file_path) const;
+  void WriteData(const std::string& save_file_path) const;
 
   // Returns the HSIData struct containing any data loaded in from ReadData().
   const HSIData& GetData() const {

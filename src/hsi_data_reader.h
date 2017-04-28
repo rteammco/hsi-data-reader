@@ -16,6 +16,8 @@ namespace hsi {
 // and the values in the data are stored in one of the interleave orderings.
 enum HSIDataInterleaveFormat {
   // BSQ (band sequential) format is organized in order of bands(rows(cols)).
+  // This format is optimal for reading slices of images. That is, when reading
+  // an entire 2D image for a single spectral band.
   // For example, for a file with 2 bands, 2 rows, and 2 columns, the order
   // would be as follows:
   //   b0,r0,c0
@@ -28,11 +30,33 @@ enum HSIDataInterleaveFormat {
   //   b1,r1,c1
   HSI_INTERLEAVE_BSQ,
 
-  // TODO: implement/finish support for BIP and BIL.
-  HSI_INTERLEAVE_BIP,
+  // BIL (band interleave by line) is organized in order of rows(bands(cols)).
+  // This format is a comprimise, designed to give reasonable performance when
+  // reading with either spatial-first or spectral-first priority.
+  // Following the example above:
+  //   r0 b0 c0
+  //   r0 b0 c1
+  //   r0 b1 c0
+  //   r0 b1 c1
+  //   r1 b0 c0
+  //   r1 b0 11
+  //   r1 b1 c0
+  //   r1 b1 c1
+  HSI_INTERLEAVE_BIL,
 
-  // TODO: Comment.
-  HSI_INTERLEAVE_BIL
+  // BIP (band interleave by pixel) is organized in order of rows(cols(bands)).
+  // This format is optimal for reading entire spectra at any given pixel or
+  // local sequence of pixels.
+  // Following the example above:
+  //   r0 c0 b0
+  //   r0 c0 b1
+  //   r0 c1 b0
+  //   r0 c1 b1
+  //   r1 c0 b0
+  //   r1 c0 b1
+  //   r1 c1 b0
+  //   r1 c1 b1
+  HSI_INTERLEAVE_BIP
 };
 
 // The precision/type of the data.

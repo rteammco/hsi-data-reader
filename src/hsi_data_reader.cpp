@@ -463,6 +463,33 @@ HSIDataValue HSIData::GetValue(
   return value;
 }
 
+double HSIData::GetValueAsDouble(
+    const int row, const int col, const int band) const {
+
+  const HSIDataValue value = GetValue(row, col, band);
+  switch (data_type) {
+    case HSI_DATA_TYPE_BYTE:
+      return static_cast<double>(value.value_as_byte);
+    case HSI_DATA_TYPE_INT16:
+      return static_cast<double>(value.value_as_int16);
+    case HSI_DATA_TYPE_INT32:
+      return static_cast<double>(value.value_as_int32);
+    case HSI_DATA_TYPE_FLOAT:
+      return static_cast<double>(value.value_as_float);
+    case HSI_DATA_TYPE_UNSIGNED_INT16:
+      return static_cast<double>(value.value_as_uint16);
+    case HSI_DATA_TYPE_UNSIGNED_INT32:
+      return static_cast<double>(value.value_as_uint32);
+    case HSI_DATA_TYPE_UNSIGNED_INT64:
+      return static_cast<double>(value.value_as_uint64);
+    case HSI_DATA_TYPE_UNSIGNED_LONG:
+      return static_cast<double>(value.value_as_unsigned_long);
+    case HSI_DATA_TYPE_DOUBLE:
+    default:
+      return value.value_as_double;
+  }
+}
+
 std::vector<HSIDataValue> HSIData::GetSpectrum(
     const int row, const int col) const {
 
@@ -470,6 +497,17 @@ std::vector<HSIDataValue> HSIData::GetSpectrum(
   spectrum.reserve(num_bands);
   for (int band = 0; band < num_bands; ++band) {
     spectrum.push_back(GetValue(row, col, band));
+  }
+  return spectrum;
+}
+
+std::vector<double> HSIData::GetSpectrumAsDoubles(
+    const int row, const int col) const {
+
+  std::vector<double> spectrum;
+  spectrum.reserve(num_bands);
+  for (int band = 0; band < num_bands; ++band) {
+    spectrum.push_back(GetValueAsDouble(row, col, band));
   }
   return spectrum;
 }

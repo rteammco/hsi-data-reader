@@ -141,9 +141,18 @@ struct HSIData {
   // would correspond to row 10 in the original data file.
   HSIDataValue GetValue(const int row, const int col, const int band) const;
 
+  // Returns the value as a double. If the data is not already stored as a
+  // double, it will be cast to a double first.
+  //
+  // Note that very large unsigned 64-bit integers may not be cast correctly.
+  double GetValueAsDouble(const int row, const int col, const int band) const;
+
   // Returns a vector containing the spectrum of the pixel at the given row
   // and col of the image.
   std::vector<HSIDataValue> GetSpectrum(const int row, const int col) const;
+
+  // Returns the spectrum as above, but all values are cast to doubles.
+  std::vector<double> GetSpectrumAsDoubles(const int row, const int col) const;
 
   // The raw data as bytes.
   std::vector<char> raw_data;

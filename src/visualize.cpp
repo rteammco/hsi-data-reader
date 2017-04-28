@@ -102,7 +102,7 @@ void SliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
 
 // Generates a line plot for the spectrum consisting of the given vector of
 // values. The plot is returned as a regular OpenCV image.
-cv::Mat CreatePlot(const std::vector<float>& plot_values) {
+cv::Mat CreatePlot(const std::vector<double>& plot_values) {
   const auto min_max_value =
       std::minmax_element(plot_values.begin(), plot_values.end());
   const double min_raw_value = *min_max_value.first;
@@ -157,14 +157,9 @@ void MouseEventCallback(
   if (event == CV_EVENT_LBUTTONDOWN) {
     const hsi::HSIData* hsi_data =
         reinterpret_cast<hsi::HSIData*>(hsi_data_ptr);
-    const std::vector<hsi::HSIDataValue> spectrum =
-        hsi_data->GetSpectrum(y_pos, x_pos);
-    std::vector<float> spectrum_floats;
-    for (const hsi::HSIDataValue value : spectrum) {
-      // TODO: This is not always going to be float values!
-      spectrum_floats.push_back(value.value_as_float);
-    }
-    cv::Mat spectrum_plot = CreatePlot(spectrum_floats);
+    const std::vector<double> spectrum =
+        hsi_data->GetSpectrumAsDoubles(y_pos, x_pos);
+    cv::Mat spectrum_plot = CreatePlot(spectrum);
     cv::namedWindow(kSpectrumWindowName);
     cv::imshow(kSpectrumWindowName, spectrum_plot);
   }

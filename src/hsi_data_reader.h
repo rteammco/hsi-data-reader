@@ -36,13 +36,13 @@ enum HSIDataInterleaveFormat {
 };
 
 // The precision/type of the data.
+// TODO: Complex 2x32 (6) and 2x64 (9) are also possible HSI data types.
 enum HSIDataType {
   HSI_DATA_TYPE_BYTE = 1,
   HSI_DATA_TYPE_INT16 = 2,
   HSI_DATA_TYPE_INT32 = 3,
   HSI_DATA_TYPE_FLOAT = 4,
   HSI_DATA_TYPE_DOUBLE = 5,
-  // TODO: Complex 2x32 (6) and 2x64 (9) are also possible HSI data types.
   HSI_DATA_TYPE_UNSIGNED_INT16 = 12,
   HSI_DATA_TYPE_UNSIGNED_INT32 = 13,
   HSI_DATA_TYPE_UNSIGNED_INT64 = 14,
@@ -99,12 +99,19 @@ struct HSIDataRange {
 union HSIDataValue {
   HSIDataValue() : value_as_uint64(0) {}
 
+  // The raw bytes.
+  char bytes[8];
+
+  // Interpret the memory as one of the following types:
+  char value_as_byte;
   int16_t value_as_int16;
+  int32_t value_as_int32;
   float value_as_float;
   double value_as_double;
   uint16_t value_as_uint16;
-  unsigned long value_as_uint64;
-  char bytes[8];
+  uint32_t value_as_uint32;
+  uint64_t value_as_uint64;
+  unsigned long value_as_unsigned_long;
 };
 
 // This struct stores and provides access to hyperspectral data. All data is
@@ -132,8 +139,6 @@ struct HSIData {
   // memory, and not absolute positions in the entire data file. For example,
   // if data was read with start_row = 10, then row index 0 in this HSIData
   // would correspond to row 10 in the original data file.
-  //
-  // TODO: The ordering of the data depends on the interleave format used.
   HSIDataValue GetValue(const int row, const int col, const int band) const;
 
   // Returns a vector containing the spectrum of the pixel at the given row

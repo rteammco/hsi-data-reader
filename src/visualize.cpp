@@ -30,29 +30,30 @@ static const cv::Scalar kSpectrumPlotLineColor(25, 25, 255);
 static const cv::Scalar kSpectrumZeroLineColor(0, 255, 0);
 
 // Returns the OpenCV matrix type to use, depending on the HSI data type.
-// TODO: Add support for more types.
 int GetOpenCVMatrixType(const hsi::HSIDataType data_type) {
-  int matrix_type;
   switch (data_type) {
+  case hsi::HSI_DATA_TYPE_BYTE:
+    return CV_8SC1;
   case hsi::HSI_DATA_TYPE_INT16:
-    matrix_type = CV_16SC1;
-    break;
+    return CV_16SC1;
+  case hsi::HSI_DATA_TYPE_INT32:
+    return CV_32SC1;
   case hsi::HSI_DATA_TYPE_DOUBLE:
-    matrix_type = CV_64FC1;
-    break;
+    return CV_64FC1;
   case hsi::HSI_DATA_TYPE_UNSIGNED_INT16:
-    matrix_type = CV_16UC1;
-    break;
+    return CV_16UC1;
+  case hsi::HSI_DATA_TYPE_UNSIGNED_INT32:
+    return CV_32SC1;  // TODO: OpenCV doesn't support uint32.
+  case hsi::HSI_DATA_TYPE_UNSIGNED_LONG:
+  case hsi::HSI_DATA_TYPE_UNSIGNED_INT64:
+    return CV_32SC1;  // TODO: OpenCV doesn't support s/uint64.
   case hsi::HSI_DATA_TYPE_FLOAT:
   default:
-    matrix_type = CV_32FC1;
-    break;
+    return CV_32FC1;
   }
-  return matrix_type;
 }
 
 // Set the pixel value of the matrix, interprented based on the type of data.
-// TODO: Add support for more types.
 void SetBandImagePixel(
     const int row,
     const int col,
@@ -60,15 +61,29 @@ void SetBandImagePixel(
     const hsi::HSIDataType data_type,
     cv::Mat* band_image) {
 
+
   switch (data_type) {
+  case hsi::HSI_DATA_TYPE_BYTE:
+    band_image->at<char>(row, col) = value.value_as_byte;
   case hsi::HSI_DATA_TYPE_INT16:
     band_image->at<int16_t>(row, col) = value.value_as_int16;
+    break;
+  case hsi::HSI_DATA_TYPE_INT32:
+    band_image->at<int32_t>(row, col) = value.value_as_int32;
     break;
   case hsi::HSI_DATA_TYPE_DOUBLE:
     band_image->at<double>(row, col) = value.value_as_double;
     break;
   case hsi::HSI_DATA_TYPE_UNSIGNED_INT16:
     band_image->at<uint16_t>(row, col) = value.value_as_uint16;
+    break;
+  case hsi::HSI_DATA_TYPE_UNSIGNED_INT32:
+    band_image->at<uint32_t>(row, col) = value.value_as_uint16;
+    break;
+  case hsi::HSI_DATA_TYPE_UNSIGNED_INT64:
+  case hsi::HSI_DATA_TYPE_UNSIGNED_LONG:
+    // TODO: OpenCV doesn't support s/uint64.
+    band_image->at<int32_t>(row, col) = value.value_as_int32;
     break;
   case hsi::HSI_DATA_TYPE_FLOAT:
   default:

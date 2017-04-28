@@ -81,14 +81,23 @@ std::unordered_map<std::string, std::string> GetConfigFileValues(
 
 // Returns the size of the data value based on the given HSIDataType.
 int GetDataSize(const HSIDataType& data_type) {
-  // TODO: Add support for more types.
   switch (data_type) {
+    case HSI_DATA_TYPE_BYTE:
+      return sizeof(char);
     case HSI_DATA_TYPE_INT16:
       return sizeof(int16_t);
+    case HSI_DATA_TYPE_INT32:
+      return sizeof(int32_t);
     case HSI_DATA_TYPE_DOUBLE:
       return sizeof(double);
     case HSI_DATA_TYPE_UNSIGNED_INT16:
       return sizeof(uint16_t);
+    case HSI_DATA_TYPE_UNSIGNED_INT32:
+      return sizeof(uint32_t);
+    case HSI_DATA_TYPE_UNSIGNED_INT64:
+      return sizeof(uint64_t);
+    case HSI_DATA_TYPE_UNSIGNED_LONG:
+      return sizeof(unsigned long);
     case HSI_DATA_TYPE_FLOAT:
     default:
       return sizeof(float);
@@ -290,24 +299,40 @@ void HSIDataOptions::ReadHeaderFromFile(const std::string& header_file_path) {
   }
 
   itr = header_values.find("data type");
+  std::string data_type_name;
   if (itr != header_values.end()) {
-    // TODO: add support for more data types.
-    if (itr->second == "2" || itr->second == "int16") {
+    if (itr->second == "1" || itr->second == "byte") {
+      data_type = HSI_DATA_TYPE_BYTE;
+      data_type_name = "byte";
+    } else if (itr->second == "2" || itr->second == "int16") {
       data_type = HSI_DATA_TYPE_INT16;
-      std::cout << "Option set: data type int16." << std::endl;
+      data_type_name = "int16";
+    } else if (itr->second == "3" || itr->second == "int32") {
+      data_type = HSI_DATA_TYPE_INT32;
+      data_type_name = "int32";
     } else if (itr->second == "4" || itr->second == "float") {
       data_type = HSI_DATA_TYPE_FLOAT;
-      std::cout << "Option set: data type float." << std::endl;
+      data_type_name = "float";
     } else if (itr->second == "5" || itr->second == "double") {
       data_type = HSI_DATA_TYPE_DOUBLE;
-      std::cout << "Option set: data type double." << std::endl;
+      data_type_name = "double";
     } else if (itr->second == "12" || itr->second == "uint16") {
       data_type = HSI_DATA_TYPE_UNSIGNED_INT16;
-      std::cout << "Option set: data type unsigned int16." << std::endl;
+      data_type_name = "unsigned int16";
+    } else if (itr->second == "13" || itr->second == "uint32") {
+      data_type = HSI_DATA_TYPE_UNSIGNED_INT32;
+      data_type_name = "unsigned int32";
+    } else if (itr->second == "14" || itr->second == "uint64") {
+      data_type = HSI_DATA_TYPE_UNSIGNED_INT64;
+      data_type_name = "unsigned int64";
+    } else if (itr->second == "15" || itr->second == "ulong") {
+      data_type = HSI_DATA_TYPE_UNSIGNED_LONG;
+      data_type_name = "unsigned long";
     } else {
       FatalError("Unsupported/unknown data type: " + itr->second);
     }
   }
+  std::cout << "Option set: data type " << data_type_name << "." << std::endl;
 
   itr = header_values.find("byte order");
   if (itr != header_values.end()) {
@@ -433,6 +458,7 @@ HSIDataValue HSIData::GetValue(
   const int data_size = GetDataSize(data_type);
   const char* bytes = &(raw_data[index * data_size]);
   HSIDataValue value;
+  // TODO: The byte order may change depending on machine endian.
   std::copy(bytes, bytes + data_size, value.bytes);
   return value;
 }

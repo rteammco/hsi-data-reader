@@ -32,42 +32,42 @@ static const cv::Scalar kSpectrumZeroLineColor(0, 255, 0);
 // The maximum exposure that the image can be displayed with.
 constexpr int kMaxExposurePercent = 500;
 
-// Variables indicating the displayed channel and current exposure.
-int current_exposure_percent = 100;
-int current_displayed_band = 0;
+// This struct is passed to callback functions to update the visualization
+// window with appropriate band image and exposure level.
+struct DisplayState {
+  int current_exposure_percent = 100;
+  int current_displayed_band = 0;
+  std::vector<cv::Mat>* hsi_image_bands;
+};
 
-// Displays the given band image with the given exposre in the main window.
-// This is used when swapping bands to display or when changing the exposure.
-void DisplayBandWithExposure(
-    const int band_index,
-    const int exposure_percent,
-    const std::vector<cv::Mat>* hsi_image_bands) {
-
+// Displays the appropriate band image given the current DisplayState. This is
+// used when swapping bands to display or when changing the exposure.
+void DisplayBandImage(const DisplayState* display_state) {
   const double exposure_ratio =
-      static_cast<double>(current_exposure_percent) / 100.0;
-  cv::Mat display_image = hsi_image_bands->at(band_index).clone();
+      static_cast<double>(display_state->current_exposure_percent) / 100.0;
+  const int band_index = display_state->current_displayed_band;
+  cv::Mat display_image =
+      display_state->hsi_image_bands->at(band_index).clone();
   display_image *= exposure_ratio;
   cv::imshow(kMainWindowName, display_image);
 }
 
 // Callback function for the exposure selection slider, which will update the
 // displayed band image with a new exposure ratio.
-void ExposureSliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
-  current_exposure_percent = slider_value;
-  std::vector<cv::Mat>* hsi_image_bands =
-      reinterpret_cast<std::vector<cv::Mat>*>(hsi_image_bands_ptr);
-  DisplayBandWithExposure(
-      current_displayed_band, slider_value, hsi_image_bands);
+void ExposureSliderMovedCallback(int slider_value, void* display_state_ptr) {
+  DisplayState* display_state =
+      reinterpret_cast<DisplayState*>(display_state_ptr);
+  display_state->current_exposure_percent = slider_value;
+  DisplayBandImage(display_state);
 }
 
 // Callback function for the band selection slider, which will switch the
 // display between different bands of the hyperspectral image.
-void BandSliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
-  current_displayed_band = slider_value;
-  std::vector<cv::Mat>* hsi_image_bands =
-      reinterpret_cast<std::vector<cv::Mat>*>(hsi_image_bands_ptr);
-  DisplayBandWitheExposure(
-      slider_value, current_exposure_percent, hsi_image_bands);
+void BandSliderMovedCallback(int slider_value, void* display_state_ptr) {
+  DisplayState* display_state =
+      reinterpret_cast<DisplayState*>(display_state_ptr);
+  display_state->current_displayed_band = slider_value;
+  DisplayBandImage(display_state);
 }
 
 // Generates a line plot for the spectrum consisting of the given vector of
@@ -184,6 +184,8 @@ int main(int argc, char** argv) {
   }
 
   // Visualize the images so that the user can view them per-channel.
+  DisplayState display_state;
+  display_state.hsi_image_bands = &hsi_image_bands;
   cv::namedWindow(kMainWindowName);
   cv::setMouseCallback(
       kMainWindowName,
@@ -196,7 +198,7 @@ int main(int argc, char** argv) {
       &exposure_slider_value,
       kMaxExposurePercent,
       ExposureSliderMovedCallback,
-      reinterpret_cast<void*>(&hsi_image_bands));
+      reinterpret_cast<void*>(&display_state));
   int band_slider_value = 0;
   cv::createTrackbar(
       "Band Selector",
@@ -204,7 +206,7 @@ int main(int argc, char** argv) {
       &band_slider_value,
       hsi_image_bands.size() - 1,
       BandSliderMovedCallback,
-      reinterpret_cast<void*>(&hsi_image_bands));
+      reinterpret_cast<void*>(&display_state));
   cv::imshow(kMainWindowName, hsi_image_bands[0]);
   std::cout << "Visualizing data. Press any key to close window." << std::endl;
   cv::waitKey(0);

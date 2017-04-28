@@ -29,12 +29,45 @@ static const cv::Scalar kSpectrumPlotBackgroundColor(255, 255, 255);
 static const cv::Scalar kSpectrumPlotLineColor(25, 25, 255);
 static const cv::Scalar kSpectrumZeroLineColor(0, 255, 0);
 
-// Callback function for the slider, which will switch the display between
-// different bands of the hyperspectral image.
-void SliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
+// The maximum exposure that the image can be displayed with.
+constexpr int kMaxExposurePercent = 500;
+
+// Variables indicating the displayed channel and current exposure.
+int current_exposure_percent = 100;
+int current_displayed_band = 0;
+
+// Displays the given band image with the given exposre in the main window.
+// This is used when swapping bands to display or when changing the exposure.
+void DisplayBandWithExposure(
+    const int band_index,
+    const int exposure_percent,
+    const std::vector<cv::Mat>* hsi_image_bands) {
+
+  const double exposure_ratio =
+      static_cast<double>(current_exposure_percent) / 100.0;
+  cv::Mat display_image = hsi_image_bands->at(band_index).clone();
+  display_image *= exposure_ratio;
+  cv::imshow(kMainWindowName, display_image);
+}
+
+// Callback function for the exposure selection slider, which will update the
+// displayed band image with a new exposure ratio.
+void ExposureSliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
+  current_exposure_percent = slider_value;
   std::vector<cv::Mat>* hsi_image_bands =
       reinterpret_cast<std::vector<cv::Mat>*>(hsi_image_bands_ptr);
-  cv::imshow(kMainWindowName, hsi_image_bands->at(slider_value));
+  DisplayBandWithExposure(
+      current_displayed_band, slider_value, hsi_image_bands);
+}
+
+// Callback function for the band selection slider, which will switch the
+// display between different bands of the hyperspectral image.
+void BandSliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
+  current_displayed_band = slider_value;
+  std::vector<cv::Mat>* hsi_image_bands =
+      reinterpret_cast<std::vector<cv::Mat>*>(hsi_image_bands_ptr);
+  DisplayBandWitheExposure(
+      slider_value, current_exposure_percent, hsi_image_bands);
 }
 
 // Generates a line plot for the spectrum consisting of the given vector of
@@ -156,13 +189,21 @@ int main(int argc, char** argv) {
       kMainWindowName,
       MouseEventCallback,
       const_cast<void*>(reinterpret_cast<const void*>(&hsi_data)));
-  int slider_value;
+  int exposure_slider_value = 100;
+  cv::createTrackbar(
+      "Exposure",
+      kMainWindowName,
+      &exposure_slider_value,
+      kMaxExposurePercent,
+      ExposureSliderMovedCallback,
+      reinterpret_cast<void*>(&hsi_image_bands));
+  int band_slider_value = 0;
   cv::createTrackbar(
       "Band Selector",
       kMainWindowName,
-      &slider_value,
+      &band_slider_value,
       hsi_image_bands.size() - 1,
-      SliderMovedCallback,
+      BandSliderMovedCallback,
       reinterpret_cast<void*>(&hsi_image_bands));
   cv::imshow(kMainWindowName, hsi_image_bands[0]);
   std::cout << "Visualizing data. Press any key to close window." << std::endl;

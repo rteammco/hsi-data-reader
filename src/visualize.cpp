@@ -29,69 +29,6 @@ static const cv::Scalar kSpectrumPlotBackgroundColor(255, 255, 255);
 static const cv::Scalar kSpectrumPlotLineColor(25, 25, 255);
 static const cv::Scalar kSpectrumZeroLineColor(0, 255, 0);
 
-// Returns the OpenCV matrix type to use, depending on the HSI data type.
-int GetOpenCVMatrixType(const hsi::HSIDataType data_type) {
-  switch (data_type) {
-  case hsi::HSI_DATA_TYPE_BYTE:
-    return CV_8SC1;
-  case hsi::HSI_DATA_TYPE_INT16:
-    return CV_16SC1;
-  case hsi::HSI_DATA_TYPE_INT32:
-    return CV_32SC1;
-  case hsi::HSI_DATA_TYPE_DOUBLE:
-    return CV_64FC1;
-  case hsi::HSI_DATA_TYPE_UNSIGNED_INT16:
-    return CV_16UC1;
-  case hsi::HSI_DATA_TYPE_UNSIGNED_INT32:
-    return CV_32SC1;  // TODO: OpenCV doesn't support uint32.
-  case hsi::HSI_DATA_TYPE_UNSIGNED_LONG:
-  case hsi::HSI_DATA_TYPE_UNSIGNED_INT64:
-    return CV_32SC1;  // TODO: OpenCV doesn't support s/uint64.
-  case hsi::HSI_DATA_TYPE_FLOAT:
-  default:
-    return CV_32FC1;
-  }
-}
-
-// Set the pixel value of the matrix, interprented based on the type of data.
-void SetBandImagePixel(
-    const int row,
-    const int col,
-    const hsi::HSIDataValue value,
-    const hsi::HSIDataType data_type,
-    cv::Mat* band_image) {
-
-
-  switch (data_type) {
-  case hsi::HSI_DATA_TYPE_BYTE:
-    band_image->at<char>(row, col) = value.value_as_byte;
-  case hsi::HSI_DATA_TYPE_INT16:
-    band_image->at<int16_t>(row, col) = value.value_as_int16;
-    break;
-  case hsi::HSI_DATA_TYPE_INT32:
-    band_image->at<int32_t>(row, col) = value.value_as_int32;
-    break;
-  case hsi::HSI_DATA_TYPE_DOUBLE:
-    band_image->at<double>(row, col) = value.value_as_double;
-    break;
-  case hsi::HSI_DATA_TYPE_UNSIGNED_INT16:
-    band_image->at<uint16_t>(row, col) = value.value_as_uint16;
-    break;
-  case hsi::HSI_DATA_TYPE_UNSIGNED_INT32:
-    band_image->at<uint32_t>(row, col) = value.value_as_uint16;
-    break;
-  case hsi::HSI_DATA_TYPE_UNSIGNED_INT64:
-  case hsi::HSI_DATA_TYPE_UNSIGNED_LONG:
-    // TODO: OpenCV doesn't support s/uint64.
-    band_image->at<int32_t>(row, col) = value.value_as_int32;
-    break;
-  case hsi::HSI_DATA_TYPE_FLOAT:
-  default:
-    band_image->at<float>(row, col) = value.value_as_float;
-    break;
-  }
-}
-
 // Callback function for the slider, which will switch the display between
 // different bands of the hyperspectral image.
 void SliderMovedCallback(int slider_value, void* hsi_image_bands_ptr) {
@@ -188,17 +125,16 @@ int main(int argc, char** argv) {
   const hsi::HSIData& hsi_data = reader.GetData();
   const cv::Size band_image_size(hsi_data.num_cols, hsi_data.num_rows);
   std::vector<cv::Mat> hsi_image_bands;
-  const int matrix_type = GetOpenCVMatrixType(hsi_data.data_type);
+  double min_value = 0;
+  double max_value = 0;
   for (int band = 0; band < hsi_data.num_bands; ++band) {
-    cv::Mat band_image(band_image_size, matrix_type);
+    cv::Mat band_image(band_image_size, CV_64FC1);
     for (int row = 0; row < hsi_data.num_rows; ++row) {
       for (int col = 0; col < hsi_data.num_cols; ++col) {
-        SetBandImagePixel(
-            row,
-            col,
-            hsi_data.GetValue(row, col, band),
-            hsi_data.data_type,
-            &band_image);
+        const double pixel_value = hsi_data.GetValueAsDouble(row, col, band);
+        band_image.at<double>(row, col) = pixel_value;
+        min_value = std::min(min_value, pixel_value);
+        max_value = std::max(max_value, pixel_value);
       }
     }
     hsi_image_bands.push_back(band_image);
@@ -206,6 +142,12 @@ int main(int argc, char** argv) {
   if (hsi_image_bands.size() == 0) {
     std::cerr << "No bands to visualize. Quitting." << std::endl;
     return 0;
+  }
+  // Normalize the band images between 0 and 1 for visualization purposes.
+  const double range = max_value - min_value;
+  for (int i = 0; i < hsi_image_bands.size(); ++i) {
+    hsi_image_bands[i] -= min_value;
+    hsi_image_bands[i] /= range;
   }
 
   // Visualize the images so that the user can view them per-channel.
